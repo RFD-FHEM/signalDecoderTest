@@ -22,7 +22,7 @@
 #define PROGNAME               "signalDecoderTest"
 #define PROGVERS               "0.1"
 
-#define BAUDRATE               115200
+#define BAUDRATE               57600
 #include <signalDecoder.h>
 #include <bitstore.h>
 //Decoder
@@ -101,7 +101,7 @@ int patternData[] = {
 };
 
 uint8_t signal_Stream[]={ 
-	5,4,3,3,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,2,3,1,3,2,0,2,3,1,3,2,0,2,3,1,3,2,0,1,0,1,0,2,3,1,0,1,3,2,0,1,0,2,3,1,0,1,3,2,0,2,3,1,0,1,0,1,0,1,0,1,3,2,0,2,3,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,3,2,0,1,0,2,3,1,0,1,0,1,0,1,0,1,3,2,0,1,0,2,3,1,3,2,0,2,3,1,0,1,3,2,0,2,3,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,3,2,0,2,3,1,3,2,0,1,0,1,0,2,3,1,0,1,0,1,3,2,0,2,3,1,0,1,3,2,0,1,0,2,3,1,3,2,0,
+	4,3,3,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,2,3,1,3,2,0,2,3,1,3,2,0,2,3,1,3,2,0,1,0,1,0,2,3,1,0,1,3,2,0,1,0,2,3,1,0,1,3,2,0,2,3,1,0,1,0,1,0,1,0,1,3,2,0,2,3,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,3,2,0,1,0,2,3,1,0,1,0,1,0,1,0,1,3,2,0,1,0,2,3,1,3,2,0,2,3,1,0,1,3,2,0,2,3,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,3,2,0,2,3,1,3,2,0,1,0,1,0,2,3,1,0,1,0,1,3,2,0,2,3,1,0,1,3,2,0,1,0,2,3,1,3,2,0,
 };
 
 
@@ -225,12 +225,12 @@ void decode_signalstream()
 	init_random_data();
 	for (uint8_t i = 0; i<rand_data_size; i++)
 	{
-		state = ooDecode.decode(&random_data[i]);
+		//state = ooDecode.decode(&random_data[i]);
 	}
 
 	if (!state)
 	{
-		ooDecode.processMessage();
+		//ooDecode.processMessage();
 		Serial.println("Message nicht dekodiert");
 		//delay(1000);
 	}
@@ -240,7 +240,10 @@ void decode_signalstream()
 
 uint8_t msg = 0;
 
-
+#define arrayDup(DST,SRC,LEN) \
+            { size_t TMPSZ = sizeof(*(SRC)) * (LEN); \
+              if ( ((DST) = malloc(TMPSZ)) != NULL ) \
+                memcpy((DST), (SRC), TMPSZ); }
 
 
 void setup() {
@@ -281,7 +284,7 @@ void setup() {
 	Serial.print("Signal Time is=");  Serial.print(signalduration);  Serial.println(" micro seconds");
 	Serial.println("--------------------------------------------------------");
 	*/
-
+	
 	//   regression test, working with Signaldata and not pulsedata
 	Serial.println("");
 	Serial.println("--------------------------------------------------------");
@@ -299,9 +302,17 @@ void setup() {
 	Serial.println("--------------------------------------------------------");
 	Serial.println("");
 
-
-	return;
 	
+	/*ooDecode.messageLen = 201;
+	ooDecode.processMessage();
+
+	memcpy(ooDecode.message, signal_Stream, sizeof(signal_Stream) * sizeof(signal_Stream[0]));
+	memcpy(ooDecode.pattern,patternData, sizeof(patternData) * sizeof(patternData[0]));
+	ooDecode.patternLen = 6;
+	ooDecode.processMessage();*/
+return;
+	
+
 	//   M0 Logilink protocol puls pause regression test
 	pulsedata = sample_onoff_data;
 	lendata = sizeof(sample_onoff_data) / sizeof(sample_onoff_data[0]);
@@ -330,13 +341,28 @@ void setup() {
 
 void loop() {
 	//}
-	delay(1);
+	delay(1000);
+	Serial.println("--------------------------------------------------------");
+	Serial.println("Vorher");
+	Serial.println("--------------------------------------------------------");
 
-	int v1 = -20000;
-	int v2 = -20083;
-	int avg;
-	v1 = (long(v1) + v2) >>1;
+	int mstart = 30;
+	ooDecode.printOut();
+
+	ooDecode.messageLen = ooDecode.messageLen - mstart; // Berechnung der neuen Nachrichtenlänge nach dem Löschen
+	memmove(ooDecode.message, ooDecode.message + mstart, sizeof(*ooDecode.message)*(ooDecode.messageLen + 1));
+	Serial.println("--------------------------------------------------------");
+	Serial.println("Nachhher");
+	Serial.println("--------------------------------------------------------");
+
+	ooDecode.printOut();
 	
+	Serial.println("--------------------------------------------------------");
+	Serial.println("--------------------------------------------------------");
+	Serial.println("--------------------------------------------------------");
+	Serial.println("--------------------------------------------------------");
+	Serial.println("--------------------------------------------------------");
+
 
 }
 

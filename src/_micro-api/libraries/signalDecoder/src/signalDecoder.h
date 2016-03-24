@@ -53,9 +53,10 @@
 #define MSG_END char(0x3)			// this is a non printable Char
 
 
-#define DEBUGDETECT 4
+
+//#define DEBUGDETECT 3
 //#define DEBUGDETECT 255  // Very verbose output
-#define DEBUGDECODE 0
+//#define DEBUGDECODE 2
 
 enum status { searching, clockfound, syncfound, detecting };
 
@@ -83,7 +84,6 @@ public:
 
 	bool m_truncated;     // Identify if message has been truncated
 	bool m_overflow;
-	void processMessage();
 
 protected:
 	uint16_t tol;                           // calculated tolerance for signal
@@ -101,6 +101,7 @@ protected:
 	bool mcDetected;						// MC Signal alread detected flag
 	
 	void doDetect();
+	void processMessage();
 	void compress_pattern();
 	void calcHisto(const uint8_t startpos = 0, uint8_t endpos = 0);
 	bool getClock(); // Searches a clock in a given signal
