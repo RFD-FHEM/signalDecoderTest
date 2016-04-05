@@ -37,9 +37,11 @@ class BitStore
         unsigned char getByte(uint8_t idx);
         uint8_t bytecount;  // Number of stored bytes
         uint16_t valcount;  // Number of total values stored
-    protected:
+#ifndef UNITTEST 
+	protected:
 
     private:
+#endif;
         uint8_t valuelen;   // Number of bits for every value
         uint8_t bmask;
         int16_t bcnt;

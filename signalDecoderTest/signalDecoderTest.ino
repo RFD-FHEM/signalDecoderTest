@@ -17,18 +17,22 @@
 *
 *   This Sketch will only run complete on a Arduino Mega or in a Simulator which has enouth ram
 */
+#define UNITTEST 1
 
 
+#include <ArduinoUnit.h>
 #define PROGNAME               "signalDecoderTest"
 #define PROGVERS               "0.1"
 
 #define BAUDRATE               57600
 #include <signalDecoder.h>
 #include <bitstore.h>
+
+
+
 //Decoder
-//patternDetector ooDetect;
 SignalDetectorClass  ooDecode;
-//ManchesterpatternDecoder  mcDecoder(&ooDecode);
+ManchesterpatternDecoder mcdecoder(&ooDecode);			// Init Manchester Decoder class
 
 // OSV2 Data hex : DADC539E18277055        //-1116, 840, -1104, 848, -1112, 352, -628, 836, -1124, 828, -644, -1112, 840, -1124, 832, -1116, -624, 840, -1120, 832, -1120, 836, -636, -1124, 832, -1116, -628, 840, -624, 352, -1124, 832, -1120, 836, -1116, 840, -1108, 844, -1104, 852, -1104, 364, -608, 856, -1100, 852, -1108, 848, -624, 352, -1092, 376, -604, 860, -624, 356, -1108, 356, -608, 860, -624, 352, -1092, 376, -604, 860, -604, 372, -1096, 368, -604, 864, -608, 368, -1104, 852, -1092, 372, -612, 852, -608, 368, -1092, 376, -612, 852, -3568,                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | Detector ends here
 int sample_OSV2_data[] = {  863, -1080, 872, -1080, 876, -1088, 864, -1088, 868, -1092, 856, -1096, 860, -1084, 872, -1084, 868, -1100, 856, -1084, 868, -1096, 860, -1084, 868, -1080, 872, -1092, 864, -1088, 864, -1092, 864, -608, 368, -1088, 380, -592, 872, -600, 376, -1080, 388, -600, 860, -1092, 864, -600, 376, -1092, 372, -604, 864, -1088, 868, -600, 372, -1092, 864, -1084, 380, -600, 868, -1084, 868, -1088, 868, -596, 380, -1092, 376, -596, 868, -1088, 868, -1088, 864, -1092, 860, -620, 356, -1088, 868, -1088, 380, -604, 860, -608, 368, -1104, 360, -600, 868, -596, 384, -1084, 864, -1100, 364, -608, 860, -1092, 860, -1096, 860, -1096, 856, -600, 380, -1088, 860, -1092, 376, -616, 852, -612, 364, -1084, 872, -1084, 868, -1088, 376, -624, 844, -1088, 868, -596, 376, -1088, 868, -1084, 868, -1084, 384, -608, 856, -1096, 856, -1092, 864, -604, 372, -1088, 868, -1076, 392, -596, 864, -592, 388, -1084, 868, -1092, 860, -1092, 864, -1096, 860, -1092, 860, -1096, 368, -596, 868, -1088, 868, -1084, 868, -608, 372, -1092, 372, -600, 868, -604, 372, -1088, 376, -600, 864, -612, 368, -1088, 376, -608, 856, -600, 376, -1088, 380, -604, 864, -604, 372, -1080, 872, -1096, 372, -596, 868, -600, 376, -1084, 380, -604, 861 };
@@ -97,7 +101,7 @@ uint8_t signal_Stream[] = {
 
 /* OSV2 Protocol*/
 int patternData[] = {
-	908,-1061,-569,392,143,105
+	908,-1061,-569,392,143,-2000
 };
 
 uint8_t signal_Stream[]={ 
@@ -199,7 +203,6 @@ void decode_onoff()
 
 void decode_signalstream()
 {
-	uint16_t len = sizeof(signal_Stream) / sizeof(signal_Stream[0]);
 	init_random_data();
 	signalduration = 0;
 	bool state;
@@ -246,6 +249,114 @@ uint8_t msg = 0;
                 memcpy((DST), (SRC), TMPSZ); }
 
 
+
+test(1decode_mc_osv2)
+{
+	int pData[6] = {
+//		908,-1061,-569,392,2000,-2000
+		2000,392,908,-1061,-569,-2000
+
+	};
+
+	uint8_t s_Stream[200] = {
+		//23 1320= 30 2031
+		//4,3,3,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,2,3,1,3,2,0,2,3,1,3,2,0,2,3,1,3,2,0,1,0,1,0,2,3,1,0,1,3,2,0,1,0,2,3,1,0,1,3,2,0,2,3,1,0,1,0,1,0,1,0,1,3,2,0,2,3,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,3,2,0,1,0,2,3,1,0,1,0,1,0,1,0,1,3,2,0,1,0,2,3,1,3,2,0,2,3,1,0,1,3,2,0,2,3,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,3,2,0,2,3,1,3,2,0,1,0,1,0,2,3,1,0,1,0,1,3,2,0,2,3,1,0,1,3,2,0,1,0,2,3,1,3,2,0,
+		0, 1, 1, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 4, 1, 3, 1, 4, 2, 4, 1, 3, 1, 4, 2, 4, 1, 3, 1, 4, 2, 3, 2, 3, 2, 4, 1, 3, 2, 3, 1, 4, 2, 3, 2, 4, 1, 3, 2, 3, 1, 4, 2, 4, 1, 3, 2, 3, 2, 3, 2, 3, 2, 3, 1, 4, 2, 4, 1, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 1, 4, 2, 3, 2, 4, 1, 3, 2, 3, 2, 3, 2, 3, 2, 3, 1, 4, 2, 3, 2, 4, 1, 3, 1, 4, 2, 4, 1, 3, 2, 3, 1, 4, 2, 4, 1, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 1, 4, 2, 4, 1, 3, 1, 4, 2, 3, 2, 3, 2, 4, 1, 3, 2, 3, 2, 3, 1, 4, 2, 4, 1, 3, 2, 3, 1, 4, 2, 3, 2, 4, 1, 3, 1, 4, 2,
+		//2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 4, 1, 3, 1, 4, 2, 4, 1, 3, 1, 4, 2, 4, 1, 3, 1, 4, 2, 3, 2, 3, 2, 4, 1, 3, 2, 3, 1, 4, 2, 3, 2, 4, 1, 3, 2, 3, 1, 4, 2, 4, 1, 3, 2, 3, 2, 3, 2, 3, 2, 3, 1, 4, 2, 4, 1, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 1, 4, 2, 3, 2, 4, 1, 3, 2, 3, 2, 3, 2, 3, 2, 3, 1, 4, 2, 3, 2, 4, 1, 3, 1, 4, 2, 4, 1, 3, 2, 3, 1, 4, 2, 4, 1, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 1, 4, 2, 4, 1, 3, 1, 4, 2, 3, 2, 3, 2, 4, 1, 3, 2, 3, 2, 3, 1, 4, 2, 4, 1, 3, 2, 3, 1, 4, 2, 3, 2, 4, 1, 3, 1, 4, 2,
+
+	};
+
+	bool state;
+	uint16_t len = sizeof(s_Stream) / sizeof(s_Stream[0]);
+	assertEqual(len, 200);
+
+
+	uint16_t i = 0;
+	*ooDecode.last = pData[s_Stream[i]];  // Fill in at last
+	
+	for (i++; i <  len; i++)
+	{
+		state = ooDecode.decode(&pData[s_Stream[i]]);
+	}
+	state = ooDecode.decode(&pData[5]);
+
+	ooDecode.printOut();
+
+	assertEqual(ooDecode.patternLen, 4);
+	assertFalse(state);
+	assertEqual(ooDecode.message[0], 0);
+	assertEqual(ooDecode.pattern[ooDecode.message[ooDecode.messageLen-1]], pData[s_Stream[i-1]]);
+
+	
+	//assertTrue(state);
+}
+
+test(2mc_isManchester_osv2)
+{
+	assertFalse(mcdecoder.isManchester());
+	ooDecode.calcHisto();
+	assertTrue(mcdecoder.isManchester());
+}
+
+test(3mc_doDecode_osv2)
+{
+	bool result = mcdecoder.doDecode();
+	assertTrue(mcdecoder.mc_start_found);
+	assertTrue(mcdecoder.mc_sync);
+	assertTrue(mcdecoder.pdec->mcDetected);
+	assertFalse(result);
+	assertEqual(mcdecoder.ManchesterBits.bytecount, 21);
+	assertEqual(mcdecoder.ManchesterBits.valcount, 168);
+}
+
+test(4mc_getHexStr_osv2)
+{
+	String mcStr;
+	mcdecoder.getMessageHexStr(&mcStr);
+
+	String base;
+	base = "555555559995A5A6AA6AAAA5AA9669AAAA995A9A59";
+	assertEqual(mcStr,base); // may not compile or give warning
+}
+
+test(5mc_MCBits)
+{
+	assertEqual(mcdecoder.ManchesterBits.bytecount, 21);
+	assertEqual(mcdecoder.ManchesterBits.valcount, 168);
+}
+
+/*
+
+test(6mc_doDecode_osv2_append)
+{
+	const int pulse = -4000;
+	bool state;
+	state = ooDecode.decode(&pulse);
+	//assertEqual(ooDecode.patternLen, 5);
+	const int pulse2 = 4000;
+	state = ooDecode.decode(&pulse2);
+	//assertEqual(ooDecode.patternLen, 6);
+	ooDecode.printOut();
+
+	assertTrue(state);
+
+	assertTrue(mcdecoder.mc_start_found);
+	assertTrue(mcdecoder.mc_sync);
+	assertTrue(mcdecoder.pdec->mcDetected);
+
+	assertEqual(mcdecoder.ManchesterBits.bytecount, 21);
+	assertEqual(mcdecoder.ManchesterBits.valcount, 168);
+	
+	String mcStr;
+	mcdecoder.getMessageHexStr(&mcStr);
+	String base;
+	base = "555555559995A5A6AA6AAAA5AA9669AAAA995A9A58";
+	assertEqual(mcStr, base); // may not compile or give warning
+}
+
+*/
+
+
 void setup() {
 	randomSeed(A0);
 	Serial.begin(BAUDRATE);
@@ -284,7 +395,8 @@ void setup() {
 	Serial.print("Signal Time is=");  Serial.print(signalduration);  Serial.println(" micro seconds");
 	Serial.println("--------------------------------------------------------");
 	*/
-	
+	return;
+
 	//   regression test, working with Signaldata and not pulsedata
 	Serial.println("");
 	Serial.println("--------------------------------------------------------");
@@ -310,7 +422,6 @@ void setup() {
 	memcpy(ooDecode.pattern,patternData, sizeof(patternData) * sizeof(patternData[0]));
 	ooDecode.patternLen = 6;
 	ooDecode.processMessage();*/
-return;
 	
 
 	//   M0 Logilink protocol puls pause regression test
@@ -340,17 +451,21 @@ return;
 }
 
 void loop() {
+	
+	Test::run();
+	return;
+
 	//}
-	delay(1000);
+	delay(5000);
 	Serial.println("--------------------------------------------------------");
 	Serial.println("Vorher");
 	Serial.println("--------------------------------------------------------");
 
 	int mstart = 30;
 	ooDecode.printOut();
-
-	ooDecode.messageLen = ooDecode.messageLen - mstart; // Berechnung der neuen Nachrichtenlänge nach dem Löschen
-	memmove(ooDecode.message, ooDecode.message + mstart, sizeof(*ooDecode.message)*(ooDecode.messageLen + 1));
+	ooDecode.bufferMove(mstart);
+	//ooDecode.messageLen = ooDecode.messageLen - mstart; // Berechnung der neuen Nachrichtenlänge nach dem Löschen
+	//memmove(ooDecode.message, ooDecode.message + mstart, sizeof(*ooDecode.message)*(ooDecode.messageLen + 1));
 	Serial.println("--------------------------------------------------------");
 	Serial.println("Nachhher");
 	Serial.println("--------------------------------------------------------");
