@@ -24,16 +24,179 @@
 #define PROGNAME               "signalDecoderTest"
 #define PROGVERS               "0.1"
 
-#define BAUDRATE               57600
+#define BAUDRATE               115200
 #include <signalDecoder.h>
 #include <bitstore.h>
 
 
+#define B12;
 
 //Decoder
 SignalDetectorClass  ooDecode;
 ManchesterpatternDecoder mcdecoder(&ooDecode);			// Init Manchester Decoder class
 
+
+
+
+testing(decode_mc_osv2)
+{
+	bool state;
+	int pData[6] = {
+		2000,392,908,-1061,-569,-32000
+	};
+
+	uint8_t s_Stream[200] = {
+		0, 1, 1, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 4, 1, 3, 1, 4, 2, 4, 1, 3, 1, 4, 2, 4, 1, 3, 1, 4, 2, 3, 2, 3, 2, 4, 1, 3, 2, 3, 1, 4, 2, 3, 2, 4, 1, 3, 2, 3, 1, 4, 2, 4, 1, 3, 2, 3, 2, 3, 2, 3, 2, 3, 1, 4, 2, 4, 1, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 1, 4, 2, 3, 2, 4, 1, 3, 2, 3, 2, 3, 2, 3, 2, 3, 1, 4, 2, 3, 2, 4, 1, 3, 1, 4, 2, 4, 1, 3, 2, 3, 1, 4, 2, 4, 1, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 1, 4, 2, 4, 1, 3, 1, 4, 2, 3, 2, 3, 2, 4, 1, 3, 2, 3, 2, 3, 1, 4, 2, 4, 1, 3, 2, 3, 1, 4, 2, 3, 2, 4, 1, 3, 1, 4, 2,
+	};
+
+	uint16_t len = sizeof(s_Stream) / sizeof(s_Stream[0]);
+
+	uint16_t i = 0;
+	*ooDecode.last = pData[s_Stream[i]];  // Fill in at last
+
+	for (i++; i < len; i++)
+	{
+		state = ooDecode.decode(&pData[s_Stream[i]]);
+	}
+	//state = ooDecode.decode(&pData[5]);
+
+	ooDecode.printOut();
+
+	assertEqual(ooDecode.patternLen, 4);
+	assertFalse(state);
+	assertEqual(ooDecode.message[0], 0);
+	assertEqual(ooDecode.pattern[ooDecode.message[ooDecode.messageLen - 1]], pData[s_Stream[i - 1]]);
+	
+	pass();
+	
+	//assertTrue(state);
+}
+
+testing(mc_isManchester_osv2)
+{
+	if checkTestDone(decode_mc_osv2) {
+		assertFalse(mcdecoder.isManchester());
+		ooDecode.calcHisto();
+		assertTrue(mcdecoder.isManchester());
+		pass();
+	}
+}
+
+testing(mc_doDecode_osv2)
+{
+	if checkTestDone(mc_isManchester_osv2) {
+		bool result = mcdecoder.doDecode();
+#ifndef B12
+		assertTrue(mcdecoder.mc_start_found);
+		assertTrue(mcdecoder.mc_sync);
+		assertFalse(mcdecoder.pdec->mcDetected);
+#endif
+		assertTrue(result);
+		assertEqual(mcdecoder.ManchesterBits.bytecount, 20);  // 0-20
+		assertEqual(mcdecoder.ManchesterBits.valcount, 167);
+		pass();
+	}
+}
+
+testing(mc_getHexStr_osv2)
+{
+	if checkTestDone(mc_doDecode_osv2) {
+
+		String mcStr;
+		mcdecoder.getMessageHexStr(&mcStr);
+
+		String base;
+		base = "AAAAAAAB332B4B4D54D5554B552CD3555532B534B0";
+		assertEqual(mcStr, base); // may not compile or give warning
+		pass();
+	}
+}
+
+testing(mc_MCBits)
+{
+
+	if checkTestDone(mc_getHexStr_osv2) {
+
+		assertEqual(mcdecoder.ManchesterBits.bytecount, 20);
+		assertEqual(mcdecoder.ManchesterBits.valcount, 167);
+		pass();
+	}
+}
+
+
+
+testing(mc_doDecode_osv2_append)
+{
+	if (checkTestDone(mc_MCBits))
+	{
+		ooDecode.reset();
+		ooDecode.MSenabled = true;
+		ooDecode.MCenabled = true;
+		ooDecode.MUenabled = true;
+		bool state;
+		int pData[6] = {
+			2000,392,908,-1061,-569,-32000
+		};
+
+		uint8_t s_Stream[200] = {
+			3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 4, 1, 3, 1, 4, 2, 4, 1, 3, 1, 4, 2, 4, 1, 3, 1, 4, 2, 3, 2, 3, 2, 4, 1, 3, 2, 3, 1, 4, 2, 3, 2, 4, 1, 3, 2, 3, 1, 4, 2, 4, 1, 3, 2, 3, 2, 3, 2, 3, 2, 3, 1, 4, 2, 4, 1, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 1, 4, 2, 3, 2, 4, 1, 3, 2, 3, 2, 3, 2, 3, 2, 3, 1, 4, 2, 3, 2, 4, 1, 3, 1, 4, 2, 4, 1, 3, 2, 3, 1, 4, 2, 4, 1, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 1, 4, 2, 4, 1, 3, 1, 4, 2, 3, 2, 3, 2, 4, 1, 3, 2, 3, 2, 3, 1, 4, 2, 4, 1, 3, 2, 3, 1, 4, 2, 3, 2, 4, 1, 3, 1, 4, 2,
+		};
+
+		uint16_t len = sizeof(s_Stream) / sizeof(s_Stream[0]);
+		uint16_t i = 0;
+
+		for (uint8_t j = 1; j < 3; j++)
+		{
+			i = 0;
+			for (; i < len; i++)
+			{
+				state = ooDecode.decode(&pData[s_Stream[i]]);
+			}
+			//state = ooDecode.decode(&pData[5]);
+		}
+
+		//ooDecode.printOut();
+
+		assertEqual(ooDecode.patternLen, 4);
+		assertEqual(ooDecode.pattern[ooDecode.message[ooDecode.messageLen -1]], pData[s_Stream[i - 1]]);
+		state = ooDecode.decode(&pData[5]);
+		assertFalse(state);
+
+		const int pulse = -4000;
+		state = ooDecode.decode(&pulse);
+
+		assertTrue(state);
+		ooDecode.reset();
+		
+		
+		/*
+		for (uint8_t j = 1; j < 3; j++)
+		{
+			i = 0;
+			for (; i < len; i++)
+			{
+				state = ooDecode.decode(&pData[s_Stream[i]]);
+			}
+		}
+		state = ooDecode.decode(&pData[5]);
+		assertEqual(ooDecode.patternLen, 5);
+		assertFalse(state);
+
+		state = ooDecode.decode(&pulse);
+		assertTrue(state);
+		ooDecode.reset();
+
+		*/
+
+
+
+		pass();
+	}
+}
+
+
+
+/*
 // OSV2 Data hex : DADC539E18277055        //-1116, 840, -1104, 848, -1112, 352, -628, 836, -1124, 828, -644, -1112, 840, -1124, 832, -1116, -624, 840, -1120, 832, -1120, 836, -636, -1124, 832, -1116, -628, 840, -624, 352, -1124, 832, -1120, 836, -1116, 840, -1108, 844, -1104, 852, -1104, 364, -608, 856, -1100, 852, -1108, 848, -624, 352, -1092, 376, -604, 860, -624, 356, -1108, 356, -608, 860, -624, 352, -1092, 376, -604, 860, -604, 372, -1096, 368, -604, 864, -608, 368, -1104, 852, -1092, 372, -612, 852, -608, 368, -1092, 376, -612, 852, -3568,                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | Detector ends here
 int sample_OSV2_data[] = {  863, -1080, 872, -1080, 876, -1088, 864, -1088, 868, -1092, 856, -1096, 860, -1084, 872, -1084, 868, -1100, 856, -1084, 868, -1096, 860, -1084, 868, -1080, 872, -1092, 864, -1088, 864, -1092, 864, -608, 368, -1088, 380, -592, 872, -600, 376, -1080, 388, -600, 860, -1092, 864, -600, 376, -1092, 372, -604, 864, -1088, 868, -600, 372, -1092, 864, -1084, 380, -600, 868, -1084, 868, -1088, 868, -596, 380, -1092, 376, -596, 868, -1088, 868, -1088, 864, -1092, 860, -620, 356, -1088, 868, -1088, 380, -604, 860, -608, 368, -1104, 360, -600, 868, -596, 384, -1084, 864, -1100, 364, -608, 860, -1092, 860, -1096, 860, -1096, 856, -600, 380, -1088, 860, -1092, 376, -616, 852, -612, 364, -1084, 872, -1084, 868, -1088, 376, -624, 844, -1088, 868, -596, 376, -1088, 868, -1084, 868, -1084, 384, -608, 856, -1096, 856, -1092, 864, -604, 372, -1088, 868, -1076, 392, -596, 864, -592, 388, -1084, 868, -1092, 860, -1092, 864, -1096, 860, -1092, 860, -1096, 368, -596, 868, -1088, 868, -1084, 868, -608, 372, -1092, 372, -600, 868, -604, 372, -1088, 376, -600, 864, -612, 368, -1088, 376, -608, 856, -600, 376, -1088, 380, -604, 864, -604, 372, -1080, 872, -1096, 372, -596, 868, -600, 376, -1084, 380, -604, 861 };
 
@@ -59,7 +222,7 @@ int sample_onoff_data[] =
 /* ITv1
 MU; P0 = -5802; P1 = 579; P2 = -171; P3 = 192; P4 = -558; D = 0121212121212121212123434341234123412341234123434301212121212121212121234343412341234123412341234343012121212121212121212343434123412341234123412343430121212121212121212123434341234123412341234123434301212121212121212121234343412341234123412341234343012; CP = 3; O; 
 */
-
+/*
 //                                        | Start                                                                                                                                                                                                                                                                                                                                                                                         |Ends
 int sample_AS_data[] = { -764, -524, -536, 1776, -1508, 956, -684, 1712, -784, 844, -1568, 924, -720, 1712, -808, 828, -812, 816, -820, 812, -824, 808, -1608, 880, -756, 1652, -1620, 1656, -832, 796, -844, 788, -844, 784, -844, 792, -844, 788, -844, 788, -1632, 864, -772, 1636, -856, 780, -1628, 1636, -856, 772, -860, 776, -1636, 1632, -864, 772, -860, 772, -864, 772, -860, 768, -860, 776, -860, 776, -860, 772, -780, 776, -3908, 1640, -1628, 864, -768, 1640, -852, 784, -1624, 864, -772, 1676, -848, 788, -844, 792, -844, 784, -848, 788, -1620, 868, -772, 1636, -1632, 1644, -848, 780, -852, 784, -852, 780, -848, 784, -852, 784, -844, 788, -1632, 864, -768, 1640, -852, 784, -1624, 1640, -852, 776, -852, 788, -1636, 1632, -852, 784, -852, 776, -856, 780, -852, 784, -848, 784, -852, 780, -856, 776, -776, 780 };
 
@@ -99,7 +262,7 @@ uint8_t signal_Stream[] = {
 
 //MS;P0=390;P1=-1184;P2=-401;P3=1122;P4=12754;P5=-20012;P6=1371;D=02323232310232310231010101010231010102310101010232323232323102302305023232323102323102310101010102310101023101010102323232323231023023;CP=0;SP=5;
 
-/* OSV2 Protocol*/
+/* OSV2 Protocol
 int patternData[] = {
 	908,-1061,-569,392,143,-2000
 };
@@ -108,8 +271,8 @@ uint8_t signal_Stream[]={
 	4,3,3,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,2,3,1,3,2,0,2,3,1,3,2,0,2,3,1,3,2,0,1,0,1,0,2,3,1,0,1,3,2,0,1,0,2,3,1,0,1,3,2,0,2,3,1,0,1,0,1,0,1,0,1,3,2,0,2,3,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,3,2,0,1,0,2,3,1,0,1,0,1,0,1,0,1,3,2,0,1,0,2,3,1,3,2,0,2,3,1,0,1,3,2,0,2,3,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,3,2,0,2,3,1,3,2,0,1,0,1,0,2,3,1,0,1,0,1,3,2,0,2,3,1,0,1,3,2,0,1,0,2,3,1,3,2,0,
 };
 
-
-
+*/
+/*
 int *pulsedata = NULL;
 uint16_t lendata = 0;
 
@@ -135,6 +298,7 @@ void init_random_data()
 
 }
 
+*/
 
 /*
 void detect_onoff()
@@ -161,7 +325,7 @@ void detect_onoff()
 
 }
 */
-
+/*
 void decode_onoff()
 {
 	bool state;
@@ -248,118 +412,13 @@ uint8_t msg = 0;
               if ( ((DST) = malloc(TMPSZ)) != NULL ) \
                 memcpy((DST), (SRC), TMPSZ); }
 
-
-
-test(1decode_mc_osv2)
-{
-	int pData[6] = {
-//		908,-1061,-569,392,2000,-2000
-		2000,392,908,-1061,-569,-2000
-
-	};
-
-	uint8_t s_Stream[200] = {
-		//23 1320= 30 2031
-		//4,3,3,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,2,3,1,3,2,0,2,3,1,3,2,0,2,3,1,3,2,0,1,0,1,0,2,3,1,0,1,3,2,0,1,0,2,3,1,0,1,3,2,0,2,3,1,0,1,0,1,0,1,0,1,3,2,0,2,3,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,3,2,0,1,0,2,3,1,0,1,0,1,0,1,0,1,3,2,0,1,0,2,3,1,3,2,0,2,3,1,0,1,3,2,0,2,3,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,3,2,0,2,3,1,3,2,0,1,0,1,0,2,3,1,0,1,0,1,3,2,0,2,3,1,0,1,3,2,0,1,0,2,3,1,3,2,0,
-		0, 1, 1, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 4, 1, 3, 1, 4, 2, 4, 1, 3, 1, 4, 2, 4, 1, 3, 1, 4, 2, 3, 2, 3, 2, 4, 1, 3, 2, 3, 1, 4, 2, 3, 2, 4, 1, 3, 2, 3, 1, 4, 2, 4, 1, 3, 2, 3, 2, 3, 2, 3, 2, 3, 1, 4, 2, 4, 1, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 1, 4, 2, 3, 2, 4, 1, 3, 2, 3, 2, 3, 2, 3, 2, 3, 1, 4, 2, 3, 2, 4, 1, 3, 1, 4, 2, 4, 1, 3, 2, 3, 1, 4, 2, 4, 1, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 1, 4, 2, 4, 1, 3, 1, 4, 2, 3, 2, 3, 2, 4, 1, 3, 2, 3, 2, 3, 1, 4, 2, 4, 1, 3, 2, 3, 1, 4, 2, 3, 2, 4, 1, 3, 1, 4, 2,
-		//2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 4, 1, 3, 1, 4, 2, 4, 1, 3, 1, 4, 2, 4, 1, 3, 1, 4, 2, 3, 2, 3, 2, 4, 1, 3, 2, 3, 1, 4, 2, 3, 2, 4, 1, 3, 2, 3, 1, 4, 2, 4, 1, 3, 2, 3, 2, 3, 2, 3, 2, 3, 1, 4, 2, 4, 1, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 1, 4, 2, 3, 2, 4, 1, 3, 2, 3, 2, 3, 2, 3, 2, 3, 1, 4, 2, 3, 2, 4, 1, 3, 1, 4, 2, 4, 1, 3, 2, 3, 1, 4, 2, 4, 1, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 1, 4, 2, 4, 1, 3, 1, 4, 2, 3, 2, 3, 2, 4, 1, 3, 2, 3, 2, 3, 1, 4, 2, 4, 1, 3, 2, 3, 1, 4, 2, 3, 2, 4, 1, 3, 1, 4, 2,
-
-	};
-
-	bool state;
-	uint16_t len = sizeof(s_Stream) / sizeof(s_Stream[0]);
-	assertEqual(len, 200);
-
-
-	uint16_t i = 0;
-	*ooDecode.last = pData[s_Stream[i]];  // Fill in at last
-	
-	for (i++; i <  len; i++)
-	{
-		state = ooDecode.decode(&pData[s_Stream[i]]);
-	}
-	state = ooDecode.decode(&pData[5]);
-
-	ooDecode.printOut();
-
-	assertEqual(ooDecode.patternLen, 4);
-	assertFalse(state);
-	assertEqual(ooDecode.message[0], 0);
-	assertEqual(ooDecode.pattern[ooDecode.message[ooDecode.messageLen-1]], pData[s_Stream[i-1]]);
-
-	
-	//assertTrue(state);
-}
-
-test(2mc_isManchester_osv2)
-{
-	assertFalse(mcdecoder.isManchester());
-	ooDecode.calcHisto();
-	assertTrue(mcdecoder.isManchester());
-}
-
-test(3mc_doDecode_osv2)
-{
-	bool result = mcdecoder.doDecode();
-	assertTrue(mcdecoder.mc_start_found);
-	assertTrue(mcdecoder.mc_sync);
-	assertTrue(mcdecoder.pdec->mcDetected);
-	assertFalse(result);
-	assertEqual(mcdecoder.ManchesterBits.bytecount, 21);
-	assertEqual(mcdecoder.ManchesterBits.valcount, 168);
-}
-
-test(4mc_getHexStr_osv2)
-{
-	String mcStr;
-	mcdecoder.getMessageHexStr(&mcStr);
-
-	String base;
-	base = "555555559995A5A6AA6AAAA5AA9669AAAA995A9A59";
-	assertEqual(mcStr,base); // may not compile or give warning
-}
-
-test(5mc_MCBits)
-{
-	assertEqual(mcdecoder.ManchesterBits.bytecount, 21);
-	assertEqual(mcdecoder.ManchesterBits.valcount, 168);
-}
-
-/*
-
-test(6mc_doDecode_osv2_append)
-{
-	const int pulse = -4000;
-	bool state;
-	state = ooDecode.decode(&pulse);
-	//assertEqual(ooDecode.patternLen, 5);
-	const int pulse2 = 4000;
-	state = ooDecode.decode(&pulse2);
-	//assertEqual(ooDecode.patternLen, 6);
-	ooDecode.printOut();
-
-	assertTrue(state);
-
-	assertTrue(mcdecoder.mc_start_found);
-	assertTrue(mcdecoder.mc_sync);
-	assertTrue(mcdecoder.pdec->mcDetected);
-
-	assertEqual(mcdecoder.ManchesterBits.bytecount, 21);
-	assertEqual(mcdecoder.ManchesterBits.valcount, 168);
-	
-	String mcStr;
-	mcdecoder.getMessageHexStr(&mcStr);
-	String base;
-	base = "555555559995A5A6AA6AAAA5AA9669AAAA995A9A58";
-	assertEqual(mcStr, base); // may not compile or give warning
-}
-
-*/
+				*/
 
 
 void setup() {
 	randomSeed(A0);
 	Serial.begin(BAUDRATE);
+/*
 	init_random_data();
 	delay(2000);
 	Serial.println("Startup:");
@@ -396,7 +455,7 @@ void setup() {
 	Serial.println("--------------------------------------------------------");
 	*/
 	return;
-
+	/*
 	//   regression test, working with Signaldata and not pulsedata
 	Serial.println("");
 	Serial.println("--------------------------------------------------------");
@@ -423,7 +482,7 @@ void setup() {
 	ooDecode.patternLen = 6;
 	ooDecode.processMessage();*/
 	
-
+	/*
 	//   M0 Logilink protocol puls pause regression test
 	pulsedata = sample_onoff_data;
 	lendata = sizeof(sample_onoff_data) / sizeof(sample_onoff_data[0]);
@@ -444,7 +503,7 @@ void setup() {
 	Serial.println("");
 
 
-
+	*/
 
 
 
@@ -454,7 +513,7 @@ void loop() {
 	
 	Test::run();
 	return;
-
+/*
 	//}
 	delay(5000);
 	Serial.println("--------------------------------------------------------");
@@ -477,7 +536,7 @@ void loop() {
 	Serial.println("--------------------------------------------------------");
 	Serial.println("--------------------------------------------------------");
 	Serial.println("--------------------------------------------------------");
-
+	*/
 
 }
 
