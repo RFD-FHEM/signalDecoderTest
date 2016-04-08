@@ -29,7 +29,7 @@
 #include <bitstore.h>
 
 
-#define B12;
+//#define B12;
 
 //Decoder
 SignalDetectorClass  ooDecode;
@@ -38,7 +38,7 @@ ManchesterpatternDecoder mcdecoder(&ooDecode);			// Init Manchester Decoder clas
 
 
 
-testing(decode_mc_osv2)
+testing(mc_decode_osv2)
 {
 	bool state;
 	int pData[6] = {
@@ -74,7 +74,7 @@ testing(decode_mc_osv2)
 
 testing(mc_isManchester_osv2)
 {
-	if checkTestDone(decode_mc_osv2) {
+	if checkTestDone(mc_decode_osv2) {
 		assertFalse(mcdecoder.isManchester());
 		ooDecode.calcHisto();
 		assertTrue(mcdecoder.isManchester());
@@ -122,8 +122,6 @@ testing(mc_MCBits)
 		pass();
 	}
 }
-
-
 
 testing(mc_doDecode_osv2_append)
 {
@@ -194,7 +192,115 @@ testing(mc_doDecode_osv2_append)
 	}
 }
 
+testing(mc_finished)
+{
+	if (checkTestDone(mc_doDecode_osv2_append))
+		pass();
+}
 
+
+testing(ms_dodecode_NCWS)
+{
+	if (checkTestDone(mc_finished))
+	{
+		bool state;
+		
+		//s5FA80C43C000
+	    //	   MS; P0 = -3886; P1 = 481; P2 = -1938; P3 = -9200; D = 13121012101010101010121012101212121212121210101212121012121212101010101212; CP = 1; SP = 3; O; 
+		ooDecode.reset();
+		ooDecode.MSenabled = true;
+		ooDecode.MCenabled = true;
+		ooDecode.MUenabled = true;
+
+
+		int pData[] = {
+			-9200,481,200,-400,-1938,-3886
+		};
+
+		uint8_t s_Stream[] = {
+			1,0,1,4,1,5,1,4,1,5,1,5,1,5,1,5,1,5,1,5,1,4,1,5,1,4,1,5,1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,5,1,5,1,4,1,4,1,4,1,5,1,4,1,4,1,4,1,4,1,5,1,5,1,5,1,5,1,4,1,4, 
+		};
+
+		uint16_t len = sizeof(s_Stream) / sizeof(s_Stream[0]);
+
+		uint16_t i = 0;
+		bool decoded;
+		for (uint8_t j = 1 , i = 5; j < 5; j++)
+		{
+			
+			for (; i < len; i++)
+			{
+				state = ooDecode.decode(&pData[s_Stream[i]]);
+				if (state)
+					decoded = true;
+			}
+			if (j < 2) {
+				assertEqual(ooDecode.patternLen, 3);
+				assertFalse(state);
+			}
+			i = 0;
+		}
+		//assertTrue(decoded);
+
+		//ooDecode.printOut();
+		assertFalse(state);
+		pass();
+	}
+}
+
+
+
+testing(mu_dodecode_TX3)
+{
+	if (checkTestDone(ms_dodecode_NCWS))
+	{
+		bool state;
+
+		//	TXAE07540540
+		//	MU; P0 = -27698; P1 = -180; P2 = 1274; P3 = -1037; P4 = 505; D = 12323232343234323434343232323232323434343234323432343232323232323234323432343232323232340232323234323432343434323232323232343434323432343234323232323232323432343234323232323234023232323432343234343432323232323234343432343234323432323232323232343234323432; CP = 4; O;
+		//  MU;P0=1274;P1=-1037;P2=505;P3=-27698;                          D=0101010121012101212121010101010101212121012101210121010101010101012101210121010101010123010101012101210121212101010101010121212101210121012101010101010101210121012101010101012301010101210121012121210101010101012121210121012101210101010101010121012101210;CP=2;
+		ooDecode.reset();
+		ooDecode.MSenabled = true;
+		ooDecode.MCenabled = true;
+		ooDecode.MUenabled = true;
+
+
+		int pData[] = {
+			-27698,180,1274,-1037,505
+		};
+
+		uint8_t s_Stream[] = {
+			1,2,3,2,3,2,3,2,3,4,3,2,3,4,3,2,3,4,3,4,3,4,3,2,3,2,3,2,3,2,3,2,3,2,3,4,3,4,3,4,3,2,3,4,3,2,3,4,3,2,3,4,3,2,3,2,3,2,3,2,3,2,3,2,3,2,3,4,3,2,3,4,3,2,3,4,3,2,3,2,3,2,3,2,3,2,3,4,0,2,3,2,3,2,3,2,3,4,3,2,3,4,3,2,3,4,3,4,3,4,3,2,3,2,3,2,3,2,3,2,3,2,3,4,3,4,3,4,3,2,3,4,3,2,3,4,3,2,3,4,3,2,3,2,3,2,3,2,3,2,3,2,3,2,3,4,3,2,3,4,3,2,3,4,3,2,3,2,3,2,3,2,3,2,3,4,0,2,3,2,3,2,3,2,3,4,3,2,3,4,3,2,3,4,3,4,3,4,3,2,3,2,3,2,3,2,3,2,3,2,3,4,3,4,3,4,3,2,3,4,3,2,3,4,3,2,3,4,3,2,3,2,3,2,3,2,3,2,3,2,3,2,3,4,3,2,3,4,3,2,3,4,3,2, 
+		};
+
+		uint16_t len = sizeof(s_Stream) / sizeof(s_Stream[0]);
+
+		uint16_t i = 0;
+
+		for (uint8_t j = 1, i = 5; j < 5; j++)
+		{
+
+			for (; i < len; i++)
+			{
+				state = ooDecode.decode(&pData[s_Stream[i]]);
+			}
+			if (j < 2) {
+				assertEqual(ooDecode.patternLen, 4);
+				assertFalse(state);
+			}
+			i = 0;
+		}
+
+		//ooDecode.printOut();
+
+		//assertEqual(ooDecode.message[0], 0);
+		//assertEqual(ooDecode.pattern[ooDecode.message[ooDecode.messageLen - 1]], pData[s_Stream[i - 1]]);
+
+		pass();
+
+		//assertTrue(state);
+	}
+}
 
 /*
 // OSV2 Data hex : DADC539E18277055        //-1116, 840, -1104, 848, -1112, 352, -628, 836, -1124, 828, -644, -1112, 840, -1124, 832, -1116, -624, 840, -1120, 832, -1120, 836, -636, -1124, 832, -1116, -628, 840, -624, 352, -1124, 832, -1120, 836, -1116, 840, -1108, 844, -1104, 852, -1104, 364, -608, 856, -1100, 852, -1108, 848, -624, 352, -1092, 376, -604, 860, -624, 356, -1108, 356, -608, 860, -624, 352, -1092, 376, -604, 860, -604, 372, -1096, 368, -604, 864, -608, 368, -1104, 852, -1092, 372, -612, 852, -608, 368, -1092, 376, -612, 852, -3568,                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | Detector ends here
