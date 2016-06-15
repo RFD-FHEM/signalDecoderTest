@@ -23,6 +23,8 @@
 #include <ArduinoUnit.h>
 #define PROGNAME               "signalDecoderTest"
 #define PROGVERS               "0.1"
+#define DEBUGDETECT 4
+#define DEBUGDECODE 2
 
 #define BAUDRATE               115200
 #include <signalDecoder.h>
@@ -60,7 +62,7 @@ testing(mc_decode_osv2)
 	}
 	//state = ooDecode.decode(&pData[5]);
 
-	ooDecode.printOut();
+	//ooDecode.printOut();
 
 	assertEqual(ooDecode.patternLen, 4);
 	assertFalse(state);
@@ -106,7 +108,7 @@ testing(mc_getHexStr_osv2)
 		mcdecoder.getMessageHexStr(&mcStr);
 
 		String base;
-		base = "AAAAAAAB332B4B4D54D5554B552CD3555532B534B0";
+		base = "AAAAAAAA666A5A595595555A556996555566A565A6"; // "AAAAAAAB332B4B4D54D5554B552CD3555532B534B2";
 		assertEqual(mcStr, base); // may not compile or give warning
 		pass();
 	}
@@ -302,6 +304,324 @@ testing(mu_dodecode_TX3)
 	}
 }
 
+
+
+bool import_sigdata( String *cmdstring)
+{
+
+	String msg_part;
+	int16_t startpos = 0;
+	int16_t endpos = 0;
+	int buckets[8] = {};
+	bool state;
+	while (true)
+	{
+		startpos = endpos + 1;    // Set startpos to endpos to extract next part
+		endpos = cmdstring->indexOf(";", startpos);     			 // search next   ";"
+		if (endpos == -1 || startpos == -1) break;
+
+
+		if (cmdstring->charAt(startpos) == 'P' && cmdstring->charAt(startpos+2) == '=') // Do some basic detection if data matches what we expect
+		{
+			uint8_t counter = cmdstring->substring(startpos+1, startpos+2).toInt(); // extract the pattern number
+			buckets[counter] = cmdstring->substring(startpos+3,endpos).toInt();
+
+		}
+		else if (cmdstring->charAt(startpos) == 'D') {
+			for (int i=startpos+2; i < endpos; i++)
+			{
+				state = ooDecode.decode(&buckets[cmdstring->substring(i, i + 1).toInt()]);
+			}
+
+		}
+		
+	}
+	return state;
+
+
+}
+
+
+testing(mc_osv3_a)
+{
+	if (checkTestDone(mu_dodecode_TX3))
+	{
+		bool state;
+		ooDecode.reset();
+		mcdecoder.reset();
+
+		String dstr(F("MU;P0=-296;P1=420;P2=-581;P3=-1090;P4=887;D=01212121212121212121212121212121212121212134343431243124213121212124312121212124212121312431212121212121212121212121212121212121242131212121;"));
+		state = import_sigdata(&dstr);
+		dstr="";
+		
+		
+		//state = ooDecode.decode(&pData[5]);
+		assertFalse(mcdecoder.isManchester());
+		ooDecode.calcHisto();
+		ooDecode.printOut();
+
+		assertTrue(mcdecoder.isManchester());
+		assertFalse(state);
+		//assertEqual(ooDecode.pattern[ooDecode.message[ooDecode.messageLen - 1]], pData[s_Stream[i - 1]]);
+
+
+		bool result = mcdecoder.doDecode();
+#ifndef B12
+		assertTrue(mcdecoder.mc_start_found);
+		assertTrue(mcdecoder.mc_sync);
+		assertFalse(mcdecoder.pdec->mcDetected);
+#endif
+		assertTrue(result);
+		assertEqual(mcdecoder.ManchesterBits.bytecount, 9);  
+		assertEqual(mcdecoder.ManchesterBits.valcount, 79);
+	
+		String mcStr;
+		String base;
+
+
+		mcdecoder.getMessageHexStr(&mcStr);
+		base = "FFFFF5498207900000C0";
+		assertEqual(mcStr, base); // may not compile or give warning
+		
+		
+		mcStr = "";
+		mcdecoder.getMessagePulseStr(&mcStr);
+		base = "LL=-1090;LH=887;SL=-581;SH=420;";
+		assertEqual(mcStr, base); // may not compile or give warning
+
+		mcStr = "";
+		mcdecoder.getMessageLenStr(&mcStr);
+		base = "L=78;";
+		assertEqual(mcStr, base); // may not compile or give warning
+
+		pass();
+
+	}
+}
+
+testing(mc_osv3_b)
+{
+	if (checkTestDone(mu_dodecode_TX3))
+	{
+		bool state;
+		ooDecode.reset();
+		mcdecoder.reset();
+
+		String dstr2(F("MU;P0=-542;P1=434;P2=-1040;P3=911;D=01010101010101010101012323210103012101010103012101010101010321010323210301210101030101210101032301012101010301010101010101010101232321010301210101010301210101010101032101032321030121010103010121010103230101210101030101010101010101010123232101030121010101;"));
+		state = import_sigdata(&dstr2);
+		//ooDecode.printOut();
+		dstr2="";
+
+
+		//state = ooDecode.decode(&pData[5]);
+		assertFalse(mcdecoder.isManchester());
+		ooDecode.calcHisto();
+		//ooDecode.printOut();
+
+		assertTrue(mcdecoder.isManchester());
+		assertFalse(state);
+		//assertEqual(ooDecode.pattern[ooDecode.message[ooDecode.messageLen - 1]], pData[s_Stream[i - 1]]);
+
+		bool result = mcdecoder.doDecode();
+#ifndef B12
+		assertTrue(mcdecoder.mc_start_found);
+		assertTrue(mcdecoder.mc_sync);
+		assertFalse(mcdecoder.pdec->mcDetected);
+#endif
+		assertTrue(result);
+		assertEqual(mcdecoder.ManchesterBits.bytecount, 19);
+		assertEqual(mcdecoder.ManchesterBits.valcount, 154);
+
+		String mcStr;
+		String base;
+
+
+		mcdecoder.getMessageHexStr(&mcStr);
+		base = "FFEA3060229870B87FF51830114C385C3FFA8C0";
+		assertEqual(mcStr, base); // may not compile or give warning
+
+
+		mcStr = "";
+		mcdecoder.getMessagePulseStr(&mcStr);
+		base = "LL=-1040;LH=911;SL=-542;SH=434;";
+		assertEqual(mcStr, base); // may not compile or give warning
+		
+		mcStr = "";
+		mcdecoder.getMessageLenStr(&mcStr);
+		base = "L=154;";
+		assertEqual(mcStr, base); // may not compile or give warning
+		
+		pass();
+
+	}
+}
+
+testing(mc_osv3_c)
+{
+	if (checkTestDone(mu_dodecode_TX3))
+	{
+		bool state;
+		ooDecode.reset();
+		mcdecoder.reset();
+
+		String dstr2(F("MU;P0=-1198;P1=1676;P2=-541;P3=433;P4=-160;P5=124;P7=905;D=012345432323232323232323232323232323232323232323070723232323032327070323232707032327230323272323230323272323032723032323232323232323232327032703270327230703270323232707032;CP=3;"));
+		state = import_sigdata(&dstr2);
+		//ooDecode.printOut();
+		dstr2 = "";
+
+
+		//state = ooDecode.decode(&pData[5]);
+		assertFalse(mcdecoder.isManchester());
+		mcdecoder.reset();
+
+		ooDecode.calcHisto();
+		ooDecode.printOut();
+
+		assertTrue(mcdecoder.isManchester());
+		assertFalse(state);
+		//assertEqual(ooDecode.pattern[ooDecode.message[ooDecode.messageLen - 1]], pData[s_Stream[i - 1]]);
+
+		bool result = mcdecoder.doDecode();
+#ifndef B12
+		assertTrue(mcdecoder.mc_start_found);
+		assertTrue(mcdecoder.mc_sync);
+		assertFalse(mcdecoder.pdec->mcDetected);
+#endif
+		assertTrue(result);
+		String mcStr;
+		String base;
+
+
+		mcdecoder.getMessageHexStr(&mcStr);
+		base = "FFFFF5F1428C78E600124D214";
+		        FFFFFA83AF5CE1C67FFB6CB7A8
+		assertEqual(mcStr, base); // may not compile or give warning
+
+
+		mcStr = "";
+		mcdecoder.getMessagePulseStr(&mcStr);
+		base = "LL=-1198;LH=905;SL=-541;SH=433;";
+		assertEqual(mcStr, base); // may not compile or give warning
+
+		mcStr = "";
+		mcdecoder.getMessageLenStr(&mcStr);
+		base = "L=100;";
+		assertEqual(mcStr, base); // may not compile or give warning
+
+		pass();
+
+	}
+}
+
+testing(mc_somfy_a)
+{
+	if (checkTestDone(mu_dodecode_TX3))
+	{
+		bool state;
+		ooDecode.MSenabled = true;
+		ooDecode.MCenabled = true;
+		ooDecode.MUenabled = true;
+
+		ooDecode.reset();
+		mcdecoder.reset();
+		
+		
+
+		int s_Data[] = {
+			 2608, -2552, 2592, -2572, 2432, -2572, 2584, -2572, 2580, -2584, 2572, -2576, 2576, -2584, 4844, -1224, 1364, -1224, 1204, -756, 604, -616, 592, -760, 608, -620, 592, -1376, 1204, -1220, 756, -624, 1192, -608, 760, -604, 604, -616, 600, -1368, 1204, -1368, 600, -628, 1200, -772, 584, -612, 604, -616, 748, -1220, 1208, -1372, 604, -604, 1364, -608, 604, -628, 584, -760, 612, -612, 592, -768, 608, -1212, 1352, -1236, 1200, -1360, 1216, -620, 748, -612, 600, -608, 604, -1360, 1212, -612, 764, -1208, 1208, -768, 604, -608, 596, -628, 736, -624, 588, -624, 592, -760, 608, -608, 600, -620, 740, -32001,
+			//-2304, 2640, -2532, 4856, -1412, 1156, -1428, 1148, -712, -836, 304, -672, 548, -856, 348, -1340, 1252, -1308, 512, -640, 1324, -688, 524, -700, 668, -692, 528, -1264, 1300, -1284, 540, -820, 1156, -644, 580, -800, 552, -652, 568, -1424, 1148, -1284, 696, -656, 1164, -644, 720, -656, 556, -664, 552, -824, 540, -636, 584, -1388, 1176, -1416, 1172, -1236, 1340, -636, 572, -656, 708, -644, 572, -1252, 1328, -644, 572, -1388, 1184, -648, 568, -784, 580, -652, 564, -636, 728, -648, 568, -656, 552, -804, 564, -648, 556, -32001
+
+		};
+
+		uint16_t len = sizeof(s_Data) / sizeof(s_Data[0]);
+
+		uint16_t i = 0;
+
+		for (uint8_t j = 1, i = 0; j < 5; j++)
+		{
+
+			for (; i < len; i++)
+			{
+				state = ooDecode.decode(&s_Data[i]);
+			}
+			if (j < 2) {
+				//assertEqual(ooDecode.patternLen, 4);
+				//assertFalse(state);
+			}
+			i = 0;
+		}
+
+
+		//state = ooDecode.decode(&pData[5]);
+		assertFalse(mcdecoder.isManchester());
+		ooDecode.calcHisto();
+		//ooDecode.printOut();
+		//assertTrue(mcdecoder.isManchester());
+		assertFalse(state);
+		//assertEqual(ooDecode.pattern[ooDecode.message[ooDecode.messageLen - 1]], pData[s_Stream[i - 1]]);
+
+		pass();
+
+	}
+}
+
+
+testing(mu_decode_dooya)
+{
+	if (checkTestDone(ms_dodecode_NCWS))
+	{
+		bool state;
+		// MU;P0=-776;P1=323;P2=679;P3=-417;P4=-10548;P5=4904;P6=-1636;D=01023232310101023101010101010101023102323101010232310102310231010102310101024561010102323231010102310101010101010102310232310101023231010231023101010231010102456101010232323101010231010101010101010231023231010102323101023102310101023101010245610101023232;CP=1;O;
+		
+		ooDecode.reset();
+		ooDecode.MSenabled = true;
+		ooDecode.MCenabled = true;
+		ooDecode.MUenabled = true;
+
+		/*
+
+		*/
+
+
+		int16_t signal_raw[] = {
+			 4904, -1636, 324, -772, 324, -772, 324, -780, 676, -412, 680, -416, 680, -416, 316, -776, 320, -800, 324, -772, 680, -416, 320, -772, 324, -772, 324, -772, 320, -780, 320, -772, 324, -800, 320, -772, 320, -780, 680, -412, 320, -776, 680, -412, 680, -416, 320, -776, 320, -800, 320, -776, 680, -416, 676, -412, 324, -776, 320, -780, 672, -420, 316, -776, 680, -440, 320, -772, 324, -772, 320, -780, 676, -420, 316, -776, 320, -772, 324, -776, 680, -10548, 
+		
+		};
+
+		uint16_t len = sizeof(signal_raw) / sizeof(signal_raw[0]);
+
+		uint16_t i = 0;
+
+		for (uint8_t j = 1, i = 5; j < 5; j++)
+		{
+
+			for (; i < len; i++)
+			{
+				state = ooDecode.decode(&signal_raw[i]);
+			}
+			if (j < 2) {
+				assertEqual(ooDecode.patternLen, 5);
+				assertFalse(state);
+			}
+			i = 0;
+		}
+
+		const int16_t pause_pulse = 32760;
+		state = ooDecode.decode(&pause_pulse);;
+
+		assertEqual(ooDecode.patternLen, 8);
+
+		//ooDecode.printOut();
+
+		//assertEqual(ooDecode.message[0], 0);
+		//assertEqual(ooDecode.pattern[ooDecode.message[ooDecode.messageLen - 1]], pData[s_Stream[i - 1]]);
+
+		pass();
+
+		//assertTrue(state);
+	}
+
+}
 /*
 // OSV2 Data hex : DADC539E18277055        //-1116, 840, -1104, 848, -1112, 352, -628, 836, -1124, 828, -644, -1112, 840, -1124, 832, -1116, -624, 840, -1120, 832, -1120, 836, -636, -1124, 832, -1116, -628, 840, -624, 352, -1124, 832, -1120, 836, -1116, 840, -1108, 844, -1104, 852, -1104, 364, -608, 856, -1100, 852, -1108, 848, -624, 352, -1092, 376, -604, 860, -624, 356, -1108, 356, -608, 860, -624, 352, -1092, 376, -604, 860, -604, 372, -1096, 368, -604, 864, -608, 368, -1104, 852, -1092, 372, -612, 852, -608, 368, -1092, 376, -612, 852, -3568,                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | Detector ends here
 int sample_OSV2_data[] = {  863, -1080, 872, -1080, 876, -1088, 864, -1088, 868, -1092, 856, -1096, 860, -1084, 872, -1084, 868, -1100, 856, -1084, 868, -1096, 860, -1084, 868, -1080, 872, -1092, 864, -1088, 864, -1092, 864, -608, 368, -1088, 380, -592, 872, -600, 376, -1080, 388, -600, 860, -1092, 864, -600, 376, -1092, 372, -604, 864, -1088, 868, -600, 372, -1092, 864, -1084, 380, -600, 868, -1084, 868, -1088, 868, -596, 380, -1092, 376, -596, 868, -1088, 868, -1088, 864, -1092, 860, -620, 356, -1088, 868, -1088, 380, -604, 860, -608, 368, -1104, 360, -600, 868, -596, 384, -1084, 864, -1100, 364, -608, 860, -1092, 860, -1096, 860, -1096, 856, -600, 380, -1088, 860, -1092, 376, -616, 852, -612, 364, -1084, 872, -1084, 868, -1088, 376, -624, 844, -1088, 868, -596, 376, -1088, 868, -1084, 868, -1084, 384, -608, 856, -1096, 856, -1092, 864, -604, 372, -1088, 868, -1076, 392, -596, 864, -592, 388, -1084, 868, -1092, 860, -1092, 864, -1096, 860, -1092, 860, -1096, 368, -596, 868, -1088, 868, -1084, 868, -608, 372, -1092, 372, -600, 868, -604, 372, -1088, 376, -600, 864, -612, 368, -1088, 376, -608, 856, -600, 376, -1088, 380, -604, 864, -604, 372, -1080, 872, -1096, 372, -596, 868, -600, 376, -1084, 380, -604, 861 };
@@ -363,7 +683,62 @@ uint8_t signal_Stream[] = {
 };
 */
 
+testing(mc_somfy_b)
+{
+	if (checkTestDone(mc_somfy_a))
+	{
+		bool state;
+		ooDecode.reset();
+		mcdecoder.reset();
 
+		String dstr(F("MU;P0=387;P1=-420;P2=788;P3=-822;P4=-31734;P5=2719;P6=-2726;P7=4748;D=01230121010101010323232101010321032101010101010101045656565656565671232101010301230121010301230121010301230121010101010323232101010321032101010101010101045656565656565671232101010301230121010301230121010301230121010101010323232101010321032101010101010101;CP=0;O;"));
+		state = import_sigdata(&dstr);
+		dstr = "";
+
+
+		//state = ooDecode.decode(&pData[5]);
+		assertFalse(mcdecoder.isManchester());
+		ooDecode.calcHisto();
+		//ooDecode.printOut();
+
+		assertTrue(mcdecoder.isManchester());
+		assertFalse(state);
+		//assertEqual(ooDecode.pattern[ooDecode.message[ooDecode.messageLen - 1]], pData[s_Stream[i - 1]]);
+
+
+		bool result = mcdecoder.doDecode();
+#ifndef B12
+		assertTrue(mcdecoder.mc_start_found);
+		assertTrue(mcdecoder.mc_sync);
+		assertFalse(mcdecoder.pdec->mcDetected);
+#endif
+		assertTrue(result);
+		//assertEqual(mcdecoder.ManchesterBits.bytecount, 9);
+		//assertEqual(mcdecoder.ManchesterBits.valcount, 79);
+
+		String mcStr;
+		String base;
+
+
+		mcdecoder.getMessageHexStr(&mcStr);
+		base = "58150900";
+		assertEqual(mcStr, base); // may not compile or give warning
+
+
+		mcStr = "";
+		mcdecoder.getMessagePulseStr(&mcStr);
+		base = "LL=-822;LH=788;SL=-420;SH=387;";
+		assertEqual(mcStr, base); // may not compile or give warning
+
+		mcStr = "";
+		mcdecoder.getMessageLenStr(&mcStr);
+		base = "L=32;";
+		assertEqual(mcStr, base); // may not compile or give warning
+
+		pass();
+
+	}
+}
 //uint8_t signal_Stream []={ 0,1,0,1,0,2,0,1,0,1,0,1,0,1,0,1,0,1,0,1,3,1,0,1,0,1,0,1,0,1,0,1,0,1,3,1,3,1,3,2,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,3,1,0,1,0,1,0,1,0,1,0,1,0,1,0,2,0,1,0,1,0,1,0,1,0,1,0,1,0,1,3,1,0,1,0,1,0,1,0,1,0,1,0,1,3,1,3,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,};
 
 //MS;P0=390;P1=-1184;P2=-401;P3=1122;P4=12754;P5=-20012;P6=1371;D=02323232310232310231010101010231010102310101010232323232323102302305023232323102323102310101010102310101023101010102323232323231023023;CP=0;SP=5;
@@ -524,6 +899,12 @@ uint8_t msg = 0;
 void setup() {
 	randomSeed(A0);
 	Serial.begin(BAUDRATE);
+
+	//Test::exclude("*");
+	Test::include("*somfy_b*");
+
+	Serial.println("---- Start of ----");
+
 /*
 	init_random_data();
 	delay(2000);
@@ -618,6 +999,7 @@ void setup() {
 void loop() {
 	
 	Test::run();
+
 	return;
 /*
 	//}
