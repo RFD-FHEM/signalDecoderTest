@@ -738,6 +738,59 @@ testing(mc_somfy_b)
 
 	}
 }
+testing(mc_somfy_c)
+{
+	if (checkTestDone(mc_somfy_b))
+	{
+		bool state;
+		ooDecode.reset();
+		mcdecoder.reset();
+
+		String dstr(F("MU;P0=-2544;P1=4755;P2=-674;P3=603;P4=-1319;P5=1242;P6=-26783;P7=2453;D=22323232523232345234523232343232325232345432323252345234325452345234523432523436707070707070701454543232323252323234523452323234323232523234543232325234523432545234523452343252343670707070707070145454323232325232323452345232323432323252323454323232523452;CP=3;O"));
+		state = import_sigdata(&dstr);
+		dstr = "";
+
+
+		//state = ooDecode.decode(&pData[5]);
+		assertFalse(mcdecoder.isManchester());
+		ooDecode.calcHisto();
+		//ooDecode.printOut();
+
+		assertTrue(mcdecoder.isManchester());
+		assertFalse(state);
+		//assertEqual(ooDecode.pattern[ooDecode.message[ooDecode.messageLen - 1]], pData[s_Stream[i - 1]]);
+
+
+		bool result = mcdecoder.doDecode();
+#ifndef B12
+		assertTrue(mcdecoder.mc_start_found);
+		assertTrue(mcdecoder.mc_sync);
+		assertFalse(mcdecoder.pdec->mcDetected);
+#endif
+		assertTrue(result);
+		//assertEqual(mcdecoder.ManchesterBits.bytecount, 9);
+		//assertEqual(mcdecoder.ManchesterBits.valcount, 79);
+
+		String mcStr;
+		String base;
+
+
+		mcdecoder.getMessageHexStr(&mcStr);
+		base = "F090F17934932";
+		assertEqual(mcStr, base); // may not compile or give warning
+
+
+		mcStr = "";
+		mcdecoder.getMessageLenStr(&mcStr);
+		base = "L=51;";
+		assertEqual(mcStr, base); // may not compile or give warning
+
+		pass();
+
+	}
+}
+
+
 //uint8_t signal_Stream []={ 0,1,0,1,0,2,0,1,0,1,0,1,0,1,0,1,0,1,0,1,3,1,0,1,0,1,0,1,0,1,0,1,0,1,3,1,3,1,3,2,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,3,1,0,1,0,1,0,1,0,1,0,1,0,1,0,2,0,1,0,1,0,1,0,1,0,1,0,1,0,1,3,1,0,1,0,1,0,1,0,1,0,1,0,1,3,1,3,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,};
 
 //MS;P0=390;P1=-1184;P2=-401;P3=1122;P4=12754;P5=-20012;P6=1371;D=02323232310232310231010101010231010102310101010232323232323102302305023232323102323102310101010102310101023101010102323232323231023023;CP=0;SP=5;
@@ -900,7 +953,7 @@ void setup() {
 	Serial.begin(BAUDRATE);
 
 	//Test::exclude("*");
-	Test::include("*mc_osv3_*");
+	Test::include("*somfy_*");
 
 	Serial.println("---- Start of ----");
 
