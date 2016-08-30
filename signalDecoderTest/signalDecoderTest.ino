@@ -27,6 +27,9 @@
 #define DEBUGDECODE 2
 
 #define BAUDRATE               115200
+
+
+
 #include <signalDecoder.h>
 #include <bitstore.h>
 
@@ -875,6 +878,9 @@ testing(mc_tfa_a)
 		ooDecode.reset();
 		mcdecoder.reset();
 
+		ooDecode.MSenabled = true;
+		ooDecode.MCenabled = true;
+		ooDecode.MUenabled = true;
 
 		String dstr(F("MU;P0=-124;P1=1505;P2=-863;P3=561;P6=-1508;D=01232323232321232121212123232321212321212123212121212323232123232323232323232321212123212321632323232323232321232121212123232321212321212123212121212323232123232323232323232321212123212321632323232323232321232121212123232321212321212123212121212323232123;CP=3;O;"));
 		state = import_sigdata(&dstr);
@@ -899,7 +905,37 @@ testing(mc_tfa_a)
 
 }
 
+testing(mu_xt300)  //Opus XT 300
+{
+	bool state;
+	ooDecode.reset();
+	mcdecoder.reset();
+	ooDecode.MSenabled = true;
+	ooDecode.MCenabled = true;
+	ooDecode.MUenabled = true;
 
+	String dstr(F("MU;P0=1363;P1=-935;P2=536;P3=-12304;P5=7276;D=0101210101212121212121212121010121212101232121212121212121012101210121012101010101012101210121010101210101212121212121212121010121212101215;CP=2;"));
+	state = import_sigdata(&dstr);
+
+
+
+	ooDecode.printOut();
+	assertFalse(mcdecoder.isManchester());
+	ooDecode.calcHisto();
+	ooDecode.getClock();
+	ooDecode.getSync();
+	int pulse = -120;
+	state = ooDecode.decode(&pulse);
+	state = ooDecode.decode(&pulse);
+
+	ooDecode.printOut();
+
+	assertFalse(mcdecoder.isManchester());
+	assertFalse(state);
+	
+	pass();
+
+}
 //uint8_t signal_Stream []={ 0,1,0,1,0,2,0,1,0,1,0,1,0,1,0,1,0,1,0,1,3,1,0,1,0,1,0,1,0,1,0,1,0,1,3,1,3,1,3,2,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,3,1,0,1,0,1,0,1,0,1,0,1,0,1,0,2,0,1,0,1,0,1,0,1,0,1,0,1,0,1,3,1,0,1,0,1,0,1,0,1,0,1,0,1,3,1,3,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,};
 
 //MS;P0=390;P1=-1184;P2=-401;P3=1122;P4=12754;P5=-20012;P6=1371;D=02323232310232310231010101010231010102310101010232323232323102302305023232323102323102310101010102310101023101010102323232323231023023;CP=0;SP=5;
@@ -1062,7 +1098,7 @@ void setup() {
 	Serial.begin(BAUDRATE);
 
 	Test::exclude("*");
-	Test::include("*somfy**");
+	Test::include("*xt300**");
 
 	Serial.println("---- Start of ----");
 
