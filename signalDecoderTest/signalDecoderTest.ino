@@ -746,11 +746,13 @@ testing(mc_somfy_c)
 		ooDecode.reset();
 		mcdecoder.reset();
 
+
 		String dstr(F("MU;P0=-2544;P1=4755;P2=-674;P3=603;P4=-1319;P5=1242;P6=-26783;P7=2453;D=22323232523232345234523232343232325232345432323252345234325452345234523432523436707070707070701454543232323252323234523452323234323232523234543232325234523432545234523452343252343670707070707070145454323232325232323452345232323432323252323454323232523452;CP=3;O"));
 		state = import_sigdata(&dstr);
 		dstr = "";
 
-
+		
+		ooDecode.printOut();
 		//state = ooDecode.decode(&pData[5]);
 		assertFalse(mcdecoder.isManchester());
 		ooDecode.calcHisto();
@@ -763,7 +765,7 @@ testing(mc_somfy_c)
 
 		bool result = mcdecoder.doDecode();
 #ifndef B12
-		assertTrue(mcdecoder.mc_start_found);
+	//	assertTrue(mcdecoder.mc_start_found);
 		assertTrue(mcdecoder.mc_sync);
 		assertFalse(mcdecoder.pdec->mcDetected);
 #endif
@@ -785,9 +787,116 @@ testing(mc_somfy_c)
 		base = "L=51;";
 		assertEqual(mcStr, base); // may not compile or give warning
 
+		ooDecode.printOut();
+
+		assertTrue(mcdecoder.isManchester());
+		assertFalse(state);
+		//assertEqual(ooDecode.pattern[ooDecode.message[ooDecode.messageLen - 1]], pData[s_Stream[i - 1]]);
+		result = mcdecoder.doDecode();
+		mcdecoder.getMessageHexStr(&mcStr);
+		base = "F090F17934932AF84878BC9A499";
+		assertEqual(mcStr, base); // may not compile or give warning
+
+
+
 		pass();
 
 	}
+}
+
+testing(mc_somfy_d)
+{
+	if (checkTestDone(mc_somfy_c))
+	{
+		bool state;
+		ooDecode.reset();
+		mcdecoder.reset();
+
+
+		String dstr(F("MU;P0=577;P1=-26798;P2=2411;P3=-2576;P4=4731;P5=-1348;P6=1211;P7=-700;D=23234565656707050707670707050707076707056705670705076707070707056565076567070705656565012323232323232345656567070507076707070507070767070567056707050767070707070565650765670707056565650123232323232323456565670705070767070705070707670705670567070507670707;"));
+		state = import_sigdata(&dstr);
+		dstr = "";
+
+
+		ooDecode.printOut();
+		//state = ooDecode.decode(&pData[5]);
+		assertFalse(mcdecoder.isManchester());
+		ooDecode.calcHisto();
+		//ooDecode.printOut();
+
+		assertTrue(mcdecoder.isManchester());
+		assertFalse(state);
+		//assertEqual(ooDecode.pattern[ooDecode.message[ooDecode.messageLen - 1]], pData[s_Stream[i - 1]]);
+
+
+		bool result = mcdecoder.doDecode();
+#ifndef B12
+		//	assertTrue(mcdecoder.mc_start_found);
+		assertTrue(mcdecoder.mc_sync);
+		assertFalse(mcdecoder.pdec->mcDetected);
+#endif
+		assertTrue(result);
+		//assertEqual(mcdecoder.ManchesterBits.bytecount, 9);
+		//assertEqual(mcdecoder.ManchesterBits.valcount, 79);
+
+		String mcStr;
+		String base;
+
+		/*
+		mcdecoder.getMessageHexStr(&mcStr);
+		base = "F090F17934932";
+		assertEqual(mcStr, base); // may not compile or give warning
+
+		
+		mcStr = "";
+		mcdecoder.getMessageLenStr(&mcStr);
+		base = "L=51;";
+		assertEqual(mcStr, base); // may not compile or give warning
+
+		ooDecode.printOut();
+
+		assertTrue(mcdecoder.isManchester());
+		assertFalse(state);
+		//assertEqual(ooDecode.pattern[ooDecode.message[ooDecode.messageLen - 1]], pData[s_Stream[i - 1]]);
+		result = mcdecoder.doDecode();
+		mcdecoder.getMessageHexStr(&mcStr);
+		base = "F090F17934932AF84878BC9A499";
+		assertEqual(mcStr, base); // may not compile or give warning
+
+*/
+
+		pass();
+
+	}
+}
+testing(mc_tfa_a)
+{
+		bool state;
+		ooDecode.reset();
+		mcdecoder.reset();
+
+
+		String dstr(F("MU;P0=-124;P1=1505;P2=-863;P3=561;P6=-1508;D=01232323232321232121212123232321212321212123212121212323232123232323232323232321212123212321632323232323232321232121212123232321212321212123212121212323232123232323232323232321212123212321632323232323232321232121212123232321212321212123212121212323232123;CP=3;O;"));
+		state = import_sigdata(&dstr);
+		dstr = "";
+
+
+		ooDecode.printOut();
+		assertFalse(mcdecoder.isManchester());
+		ooDecode.calcHisto();
+		ooDecode.getClock();
+		ooDecode.getSync();
+
+		ooDecode.printOut();
+
+		assertFalse(mcdecoder.isManchester());
+		assertFalse(state);
+
+
+
+
+		pass();
+
 }
 
 
@@ -952,8 +1061,8 @@ void setup() {
 	randomSeed(A0);
 	Serial.begin(BAUDRATE);
 
-	//Test::exclude("*");
-	Test::include("*somfy_*");
+	Test::exclude("*");
+	Test::include("*somfy**");
 
 	Serial.println("---- Start of ----");
 
