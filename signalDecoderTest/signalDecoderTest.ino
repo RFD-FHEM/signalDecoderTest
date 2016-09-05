@@ -30,6 +30,8 @@
 
 
 
+
+
 #include <signalDecoder.h>
 #include <bitstore.h>
 
@@ -39,7 +41,6 @@
 //Decoder
 SignalDetectorClass  ooDecode;
 ManchesterpatternDecoder mcdecoder(&ooDecode);			// Init Manchester Decoder class
-
 
 
 
@@ -874,6 +875,9 @@ testing(mc_somfy_d)
 }
 testing(mc_tfa_a)
 {
+	if (checkTestDone(mc_somfy_d))
+	{
+
 		bool state;
 		ooDecode.reset();
 		mcdecoder.reset();
@@ -902,39 +906,42 @@ testing(mc_tfa_a)
 
 
 		pass();
+	}
 
 }
 
 testing(mu_xt300)  //Opus XT 300
 {
-	bool state;
-	ooDecode.reset();
-	mcdecoder.reset();
-	ooDecode.MSenabled = true;
-	ooDecode.MCenabled = true;
-	ooDecode.MUenabled = true;
+	if (checkTestDone(mc_somfy_d))
+	{
+		bool state;
+		ooDecode.reset();
+		mcdecoder.reset();
+		ooDecode.MSenabled = true;
+		ooDecode.MCenabled = true;
+		ooDecode.MUenabled = true;
 
-	String dstr(F("MU;P0=1363;P1=-935;P2=536;P3=-12304;P5=7276;D=0101210101212121212121212121010121212101232121212121212121012101210121012101010101012101210121010101210101212121212121212121010121212101215;CP=2;"));
-	state = import_sigdata(&dstr);
+		String dstr(F("MU;P0=1363;P1=-935;P2=536;P3=-12304;P5=7276;D=0101210101212121212121212121010121212101232121212121212121012101210121012101010101012101210121010101210101212121212121212121010121212101215;CP=2;"));
+		state = import_sigdata(&dstr);
 
 
 
-	ooDecode.printOut();
-	assertFalse(mcdecoder.isManchester());
-	ooDecode.calcHisto();
-	ooDecode.getClock();
-	ooDecode.getSync();
-	int pulse = -120;
-	state = ooDecode.decode(&pulse);
-	state = ooDecode.decode(&pulse);
+		ooDecode.printOut();
+		assertFalse(mcdecoder.isManchester());
+		ooDecode.calcHisto();
+		ooDecode.getClock();
+		ooDecode.getSync();
+		int pulse = -120;
+		state = ooDecode.decode(&pulse);
+		state = ooDecode.decode(&pulse);
 
-	ooDecode.printOut();
+		ooDecode.printOut();
 
-	assertFalse(mcdecoder.isManchester());
-	assertFalse(state);
-	
-	pass();
+		assertFalse(mcdecoder.isManchester());
+		assertFalse(state);
 
+		pass();
+	}
 }
 //uint8_t signal_Stream []={ 0,1,0,1,0,2,0,1,0,1,0,1,0,1,0,1,0,1,0,1,3,1,0,1,0,1,0,1,0,1,0,1,0,1,3,1,3,1,3,2,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,3,1,0,1,0,1,0,1,0,1,0,1,0,1,0,2,0,1,0,1,0,1,0,1,0,1,0,1,0,1,3,1,0,1,0,1,0,1,0,1,0,1,0,1,3,1,3,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,};
 
@@ -1097,7 +1104,7 @@ void setup() {
 	randomSeed(A0);
 	Serial.begin(BAUDRATE);
 
-	Test::exclude("*");
+	//Test::exclude("*");
 	Test::include("*xt300**");
 
 	Serial.println("---- Start of ----");
