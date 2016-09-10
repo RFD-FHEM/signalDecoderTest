@@ -798,7 +798,7 @@ testing(mc_somfy_c)
 		//assertEqual(ooDecode.pattern[ooDecode.message[ooDecode.messageLen - 1]], pData[s_Stream[i - 1]]);
 		result = mcdecoder.doDecode();
 		mcdecoder.getMessageHexStr(&mcStr);
-		base = "F090F17934932AF84878BC9A499";
+		base = "L=51;F090F179349335F090F17934932";
 		assertEqual(mcStr, base); // may not compile or give warning
 
 
@@ -1105,7 +1105,7 @@ void setup() {
 	Serial.begin(BAUDRATE);
 
 	Test::exclude("*");
-	Test::include("*osv3**");
+	Test::include("*somfy**");
 
 	Serial.println("---- Start of ----");
 
