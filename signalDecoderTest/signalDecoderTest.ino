@@ -384,7 +384,7 @@ testing(mc_osv3_a)
 
 
 		mcdecoder.getMessageHexStr(&mcStr);
-		base = "FFFFF5498207900000C0";
+		base = "0000055B3EFC37FFFF9E";
 		assertEqual(mcStr, base); // may not compile or give warning
 		
 		
@@ -395,7 +395,7 @@ testing(mc_osv3_a)
 
 		mcStr = "";
 		mcdecoder.getMessageLenStr(&mcStr);
-		base = "L=78;";
+		base = "L=79;";
 		assertEqual(mcStr, base); // may not compile or give warning
 
 		pass();
@@ -441,7 +441,7 @@ testing(mc_osv3_b)
 
 
 		mcdecoder.getMessageHexStr(&mcStr);
-		base = "FFEA3060229870B87FF51830114C385C3FFA8C0";
+		base = "000AE7CFEEB3C7A3C00573E7F759E3D1E002B9E";
 		assertEqual(mcStr, base); // may not compile or give warning
 
 
@@ -452,7 +452,7 @@ testing(mc_osv3_b)
 		
 		mcStr = "";
 		mcdecoder.getMessageLenStr(&mcStr);
-		base = "L=154;";
+		base = "L=155;";
 		assertEqual(mcStr, base); // may not compile or give warning
 		
 		pass();
@@ -497,7 +497,7 @@ testing(mc_osv3_c)
 
 
 		mcdecoder.getMessageHexStr(&mcStr);
-		base = "FFFFF5F1428C78E600124D214";
+		base = "000005075EB9C38CFFF6D96F5";
 		assertEqual(mcStr, base); // may not compile or give warning
 
 
@@ -1104,8 +1104,8 @@ void setup() {
 	randomSeed(A0);
 	Serial.begin(BAUDRATE);
 
-	//Test::exclude("*");
-	Test::include("*xt300**");
+	Test::exclude("*");
+	Test::include("*osv3**");
 
 	Serial.println("---- Start of ----");
 
