@@ -708,11 +708,17 @@ testing(mc_somfy_b)
 		assertFalse(state);
 		//assertEqual(ooDecode.pattern[ooDecode.message[ooDecode.messageLen - 1]], pData[s_Stream[i - 1]]);
 
-
+		//ooDecode.printOut();
 		bool result = mcdecoder.doDecode();
-#ifndef B12
-		assertTrue(mcdecoder.mc_start_found);
+		assertFalse(mcdecoder.mc_start_found);
 		assertTrue(mcdecoder.mc_sync);
+		assertTrue(mcdecoder.pdec->m_truncated);
+		assertTrue(result);
+		//result = mcdecoder.doDecode();
+
+#ifndef B12
+		//assertTrue(mcdecoder.mc_start_found);
+		//assertTrue(mcdecoder.mc_sync);
 		assertFalse(mcdecoder.pdec->mcDetected);
 #endif
 		assertTrue(result);
@@ -724,7 +730,8 @@ testing(mc_somfy_b)
 
 
 		mcdecoder.getMessageHexStr(&mcStr);
-		base = "58150900";
+		base = "D8150900";
+		        
 		assertEqual(mcStr, base); // may not compile or give warning
 
 
@@ -1104,7 +1111,7 @@ void setup() {
 	randomSeed(A0);
 	Serial.begin(BAUDRATE);
 
-	Test::exclude("*");
+	//Test::exclude("*");
 	Test::include("*somfy**");
 
 	Serial.println("---- Start of ----");
