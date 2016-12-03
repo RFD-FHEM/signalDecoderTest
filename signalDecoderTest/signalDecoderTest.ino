@@ -25,7 +25,6 @@
 #define PROGVERS               "0.1"
 #define DEBUGDETECT 4
 #define DEBUGDECODE 2
-
 #define BAUDRATE               115200
 
 
@@ -204,7 +203,6 @@ testing(mc_finished)
 		pass();
 }
 
-
 testing(ms_dodecode_NCWS)
 {
 	if (checkTestDone(mc_finished))
@@ -253,8 +251,6 @@ testing(ms_dodecode_NCWS)
 		pass();
 	}
 }
-
-
 
 testing(mu_dodecode_TX3)
 {
@@ -308,6 +304,104 @@ testing(mu_dodecode_TX3)
 	}
 }
 
+testing(mc_long_1)
+{
+	bool state;
+	ooDecode.reset();
+	mcdecoder.reset();
+	ooDecode.MSenabled = true;
+	ooDecode.MCenabled = true;
+	ooDecode.MUenabled = true;
+
+	String dstr2(F("0B0F1FFCAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAA"));
+	state = import_mcdata(&dstr2,0,dstr2.length(),450);
+	ooDecode.printOut();
+
+	
+	assertFalse(mcdecoder.isManchester());
+	assertEqual(254,ooDecode.messageLen);
+
+	ooDecode.calcHisto();
+	ooDecode.printOut();
+
+	Serial.println("import done");
+	assertTrue(mcdecoder.isManchester());
+
+	assertFalse(state);
+
+	bool result = mcdecoder.doDecode();
+	assertEqual(228,mcdecoder.ManchesterBits.valcount);
+	assertEqual(0, ooDecode.messageLen);
+	assertTrue(mcdecoder.mc_start_found);
+	assertTrue(mcdecoder.mc_sync);
+	assertTrue(mcdecoder.pdec->mcDetected);
+	assertFalse(result);
+	
+	// Part two
+	state = import_mcdata(&dstr2, 0, 14, 450);
+	dstr2 = "";
+	ooDecode.calcHisto();
+	ooDecode.printOut();
+	assertTrue(mcdecoder.isManchester());
+	assertEqual(80, ooDecode.messageLen);
+	result = mcdecoder.doDecode();
+	assertEqual(284, mcdecoder.ManchesterBits.valcount);
+
+
+	String mcStr;
+	String base;
+
+
+	mcdecoder.getMessageHexStr(&mcStr);
+	base = "0B0F1FFCAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAA0B0F1FFCAAAAAA";
+	assertEqual(mcStr, base); // may not compile or give warning
+
+
+
+	pass();
+
+	//assertTrue(state);
+}
+
+
+bool import_mcdata(String *cmdstring, const uint8_t startpos, const uint8_t endpos, const int16_t clock)
+{
+	int8_t b;
+	char c;
+	uint8_t bit;
+	bool state =false;
+	unsigned long stoptime = micros();
+	int16_t pwidth = 0;
+	
+	for (uint8_t i = startpos; i < endpos; i++) {
+		c = cmdstring->charAt(i);
+		b = ((byte)c) - (c <= '9' ? 0x30 : 0x37);
+
+		for (bit = 0x8; bit>0; bit >>= 1) {
+			for (byte i = 0; i <= 1; i++) {
+				if ((i == 0 ? (b & bit) : !(b & bit))) {
+					if (pwidth > 0) {
+						state = ooDecode.decode(&pwidth);
+						pwidth = 0;
+					}
+					pwidth -= clock;
+				} else {
+					if (pwidth < 0) {
+						state = ooDecode.decode(&pwidth);
+						pwidth = 0;
+					}
+					pwidth += clock;
+				}
+			}
+
+		}
+
+	}
+	state = ooDecode.decode(&pwidth);
+
+	return state;
+	// MSG_PRINTLN("");
+}
 
 
 bool import_sigdata( String *cmdstring)
@@ -917,7 +1011,9 @@ testing(mc_tfa_a)
 
 }
 
-testing(mu_xt300)  //Opus XT 300
+
+
+testing(mu_xt300_a)  //Opus XT 300
 {
 	if (checkTestDone(mc_somfy_d))
 	{
@@ -950,6 +1046,82 @@ testing(mu_xt300)  //Opus XT 300
 		pass();
 	}
 }
+
+
+testing(mu_xt300_b)  //Opus XT 300
+{
+	if (checkTestDone(mu_xt300_a))
+	{
+		bool state;
+		ooDecode.reset();
+		mcdecoder.reset();
+		ooDecode.MSenabled = true;
+		ooDecode.MCenabled = true;
+		ooDecode.MUenabled = true;
+
+		String dstr(F("MU;P0=390;P1=-870;P2=420;P3=1260;P4=-6990;D=012121212121212131213121312131213131313131213121312131313121312121212121212121212131312121212134;"));
+		state = import_sigdata(&dstr);
+
+
+
+		ooDecode.printOut();
+		assertFalse(mcdecoder.isManchester());
+		ooDecode.calcHisto();
+		ooDecode.getClock();
+		ooDecode.getSync();
+
+		state = import_sigdata(&dstr);
+		state = import_sigdata(&dstr);
+
+		int pulse = -120;
+		state = ooDecode.decode(&pulse);
+		state = ooDecode.decode(&pulse);
+
+		ooDecode.printOut();
+
+		assertFalse(mcdecoder.isManchester());
+		assertFalse(state);
+
+		pass();
+	}
+}
+
+
+testing(ms_fa20)
+{
+	if (checkTestDone(mc_somfy_d))
+	{
+
+		bool state;
+		ooDecode.reset();
+		mcdecoder.reset();
+		ooDecode.MSenabled = true;
+		ooDecode.MCenabled = true;
+		ooDecode.MUenabled = true;
+
+		String dstr(F("MU;P0=108;P1=-1369;P2=795;P3=-2724;P4=-22182;P5=8157;P6=-900;D=012121212323232321212123212124562123212123212123232121212121232323232121212321212456212321212321212323212121212123232323212121232121245621232121232121232321212121212323232321212123212124;CP=2;"));
+
+		state = import_sigdata(&dstr);
+
+		ooDecode.printOut();
+		assertFalse(mcdecoder.isManchester());
+		ooDecode.calcHisto();
+		ooDecode.getClock();
+		ooDecode.getSync();
+		int pulse = -120;
+		state = ooDecode.decode(&pulse);
+		state = ooDecode.decode(&pulse);
+
+		ooDecode.printOut();
+
+		assertFalse(mcdecoder.isManchester());
+		assertFalse(state);
+
+		pass();
+
+	}
+}
+
 //uint8_t signal_Stream []={ 0,1,0,1,0,2,0,1,0,1,0,1,0,1,0,1,0,1,0,1,3,1,0,1,0,1,0,1,0,1,0,1,0,1,3,1,3,1,3,2,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,3,1,0,1,0,1,0,1,0,1,0,1,0,1,0,2,0,1,0,1,0,1,0,1,0,1,0,1,0,1,3,1,0,1,0,1,0,1,0,1,0,1,0,1,3,1,3,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,};
 
 //MS;P0=390;P1=-1184;P2=-401;P3=1122;P4=12754;P5=-20012;P6=1371;D=02323232310232310231010101010231010102310101010232323232323102302305023232323102323102310101010102310101023101010102323232323231023023;CP=0;SP=5;
@@ -1111,8 +1283,8 @@ void setup() {
 	randomSeed(A0);
 	Serial.begin(BAUDRATE);
 
-	//Test::exclude("*");
-	Test::include("*somfy**");
+	Test::exclude("*");
+	Test::include("*mc_long_*");
 
 	Serial.println("---- Start of ----");
 
