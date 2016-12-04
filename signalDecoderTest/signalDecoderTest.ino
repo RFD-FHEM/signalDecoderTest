@@ -364,6 +364,89 @@ testing(mc_long_1)
 }
 
 
+testing(mc_long_2) //Maverick et733
+{
+	
+	assertFalse(ooDecode.inTol(-500, 5000, 550));
+
+
+
+	bool state;
+	ooDecode.reset();
+	mcdecoder.reset();
+	ooDecode.MSenabled = true;
+	ooDecode.MCenabled = true;
+	ooDecode.MUenabled = true;
+	const int pause = 5000;
+	const int pulse = -230;
+	                
+ 	String dstr2(F("AA9995595555595999A9A9A669"));
+	for (uint8_t r = 0; r < 4; r++)
+	{
+		Serial.print("repeat="); Serial.print(r); Serial.println(">");
+		for (uint8_t i = 0; i < 8; i++)
+		{
+			DigitalSimulate(pause);
+			DigitalSimulate(pulse);
+		}
+		DigitalSimulate(pause);
+
+		state = import_mcdata(&dstr2, 0, dstr2.length(), 250);
+		ooDecode.printOut();
+		Serial.print("<repeat="); Serial.print(r); Serial.println(";");
+
+	}
+
+
+
+
+	assertFalse(mcdecoder.isManchester());
+	//assertEqual(130,ooDecode.messageLen);
+
+	ooDecode.calcHisto();
+	ooDecode.printOut();
+
+	Serial.println("import done");
+	assertTrue(mcdecoder.isManchester());
+
+	assertFalse(state);
+
+	bool result = mcdecoder.doDecode();
+	assertEqual(58,mcdecoder.ManchesterBits.valcount);
+	assertTrue(mcdecoder.mc_start_found);
+	assertTrue(mcdecoder.mc_sync);
+	assertFalse(mcdecoder.pdec->mcDetected);
+	//assertFalse(result);
+	
+
+
+
+	String mcStr;
+	String base;
+
+
+	mcdecoder.getMessageHexStr(&mcStr);
+	base = "AA9995595555595999A9A9A669";
+	assertEqual(mcStr, base); // may not compile or give warning
+
+
+
+	pass();
+
+	//assertTrue(state);
+}
+
+void DigitalSimulate(int pulse)
+{
+	static int duration = 0;
+	if (duration != 0 && (pulse ^ duration) < 0) // true if a and b have opposite signs
+	{
+		ooDecode.decode(&duration);
+		duration = 0;
+	} 
+	duration += pulse;
+}
+
 bool import_mcdata(String *cmdstring, const uint8_t startpos, const uint8_t endpos, const int16_t clock)
 {
 	int8_t b;
@@ -371,7 +454,7 @@ bool import_mcdata(String *cmdstring, const uint8_t startpos, const uint8_t endp
 	uint8_t bit;
 	bool state =false;
 	unsigned long stoptime = micros();
-	int16_t pwidth = 0;
+	int pwidth = 0;
 	
 	for (uint8_t i = startpos; i < endpos; i++) {
 		c = cmdstring->charAt(i);
@@ -380,24 +463,17 @@ bool import_mcdata(String *cmdstring, const uint8_t startpos, const uint8_t endp
 		for (bit = 0x8; bit>0; bit >>= 1) {
 			for (byte i = 0; i <= 1; i++) {
 				if ((i == 0 ? (b & bit) : !(b & bit))) {
-					if (pwidth > 0) {
-						state = ooDecode.decode(&pwidth);
-						pwidth = 0;
-					}
-					pwidth -= clock;
-				} else {
-					if (pwidth < 0) {
-						state = ooDecode.decode(&pwidth);
-						pwidth = 0;
-					}
-					pwidth += clock;
+					pwidth = -1*clock;
 				}
+				else {
+					pwidth = clock;
+				}
+				DigitalSimulate(pwidth);
 			}
 
 		}
 
 	}
-	state = ooDecode.decode(&pwidth);
 
 	return state;
 	// MSG_PRINTLN("");
@@ -439,6 +515,15 @@ bool import_sigdata( String *cmdstring)
 
 }
 
+void random_import()
+{
+	//Random Data
+	String dstr(F("MU;P0=-2096;P1=4020;P2=-5081;P3=-10090;P4=887;D=012431;"));
+
+	import_sigdata(&dstr);
+	dstr = "";
+
+}
 
 testing(mc_osv3_a)
 {
@@ -1284,7 +1369,7 @@ void setup() {
 	Serial.begin(BAUDRATE);
 
 	Test::exclude("*");
-	Test::include("*mc_long_*");
+	Test::include("*mc_long_2*");
 
 	Serial.println("---- Start of ----");
 
