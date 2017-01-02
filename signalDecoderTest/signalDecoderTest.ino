@@ -26,13 +26,12 @@
 #define DEBUGDETECT 4
 #define DEBUGDECODE 2
 #define BAUDRATE               115200
+#define DEBUG				   1
 
-
-
-
-
-#include <signalDecoder.h>
-#include <bitstore.h>
+#include "output.h"
+#include "FastDelegate.h"
+#include "signalDecoder.h"
+#include "bitstore.h"
 
 
 //#define B12;
@@ -459,15 +458,34 @@ testing(mc_long_2) //Maverick et733
 	//assertTrue(state);
 }
 
-void DigitalSimulate(int pulse)
+testing(mc_maverick_1)
 {
+	
+	if (checkTestDone(mc_long_2))
+	{
+		ooDecode.reset();
+		mcdecoder.reset();
+		
+	   String dstr(F("MU;P0=-4913;P1=228;P2=361;P3=-632;P4=-382;P5=153;P6=106;D=0101010101010101023232323245354245354245323232323542463232323232323232323236424;"));
+	   import_sigdata(&dstr);
+	   ooDecode.compress_pattern();
+	   ooDecode.printOut();
+	   pass();
+	}
+
+}
+
+bool DigitalSimulate(const int pulse)
+{
+	bool state = false;
 	static int duration = 0;
 	if (duration != 0 && (pulse ^ duration) < 0) // true if a and b have opposite signs
 	{
-		ooDecode.decode(&duration);
+		state = ooDecode.decode(&duration);
 		duration = 0;
 	} 
 	duration += pulse;
+	return state;
 }
 
 bool import_mcdata(String *cmdstring, const uint8_t startpos, const uint8_t endpos, const int16_t clock)
@@ -491,7 +509,7 @@ bool import_mcdata(String *cmdstring, const uint8_t startpos, const uint8_t endp
 				else {
 					pwidth = clock;
 				}
-				DigitalSimulate(pwidth);
+				state = DigitalSimulate(pwidth);
 			}
 
 		}
@@ -527,6 +545,7 @@ bool import_sigdata( String *cmdstring)
 		else if (cmdstring->charAt(startpos) == 'D') {
 			for (int i=startpos+2; i < endpos; i++)
 			{
+				//state = DigitalSimulate(buckets[cmdstring->substring(i, i + 1).toInt()]);
 				state = ooDecode.decode(&buckets[cmdstring->substring(i, i + 1).toInt()]);
 			}
 
@@ -827,6 +846,9 @@ testing(mu_decode_dooya)
 	}
 
 }
+
+
+
 /*
 // OSV2 Data hex : DADC539E18277055        //-1116, 840, -1104, 848, -1112, 352, -628, 836, -1124, 828, -644, -1112, 840, -1124, 832, -1116, -624, 840, -1120, 832, -1120, 836, -636, -1124, 832, -1116, -628, 840, -624, 352, -1124, 832, -1120, 836, -1116, 840, -1108, 844, -1104, 852, -1104, 364, -608, 856, -1100, 852, -1108, 848, -624, 352, -1092, 376, -604, 860, -624, 356, -1108, 356, -608, 860, -624, 352, -1092, 376, -604, 860, -604, 372, -1096, 368, -604, 864, -608, 368, -1104, 852, -1092, 372, -612, 852, -608, 368, -1092, 376, -612, 852, -3568,                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | Detector ends here
 int sample_OSV2_data[] = {  863, -1080, 872, -1080, 876, -1088, 864, -1088, 868, -1092, 856, -1096, 860, -1084, 872, -1084, 868, -1100, 856, -1084, 868, -1096, 860, -1084, 868, -1080, 872, -1092, 864, -1088, 864, -1092, 864, -608, 368, -1088, 380, -592, 872, -600, 376, -1080, 388, -600, 860, -1092, 864, -600, 376, -1092, 372, -604, 864, -1088, 868, -600, 372, -1092, 864, -1084, 380, -600, 868, -1084, 868, -1088, 868, -596, 380, -1092, 376, -596, 868, -1088, 868, -1088, 864, -1092, 860, -620, 356, -1088, 868, -1088, 380, -604, 860, -608, 368, -1104, 360, -600, 868, -596, 384, -1084, 864, -1100, 364, -608, 860, -1092, 860, -1096, 860, -1096, 856, -600, 380, -1088, 860, -1092, 376, -616, 852, -612, 364, -1084, 872, -1084, 868, -1088, 376, -624, 844, -1088, 868, -596, 376, -1088, 868, -1084, 868, -1084, 384, -608, 856, -1096, 856, -1092, 864, -604, 372, -1088, 868, -1076, 392, -596, 864, -592, 388, -1084, 868, -1092, 860, -1092, 864, -1096, 860, -1092, 860, -1096, 368, -596, 868, -1088, 868, -1084, 868, -608, 372, -1092, 372, -600, 868, -604, 372, -1088, 376, -600, 864, -612, 368, -1088, 376, -608, 856, -600, 376, -1088, 380, -604, 864, -604, 372, -1080, 872, -1096, 372, -596, 868, -600, 376, -1084, 380, -604, 861 };
@@ -1230,16 +1252,61 @@ testing(ms_fa20)
 	}
 }
 
+testing(ms_nc)
+{
+	if (checkTestDone(ms_dodecode_NCWS))
+	{
+		bool state;
+		ooDecode.reset();
+		mcdecoder.reset();
+		ooDecode.MSenabled = true;
+		ooDecode.MCenabled = true;
+		ooDecode.MUenabled = true;
+		//String dstr(F("MU;P0=-4913;P1=228;P2=361;P3=-632;P4=-382;P5=153;P6=106;D=0101010101010101023232323245354245354245323232323542463232323232323232323236424;"));
+
+		String dstr(F("MU;P0=-2876;P1=439;P2=-8005;P3=-2101;P4=-4112;D=0121212121212121212121212121212131313131314141314141313131314131314131413131314141313141414131314131313131413131413121213131313131414131414131313131413131413141313131414131314141413131413131313141313141312121313131313141413141413131313141313141314131313;"));
+		state = import_sigdata(&dstr);
+		
+		
+		assertFalse(mcdecoder.isManchester());
+		ooDecode.calcHisto();
+		ooDecode.getClock();
+		ooDecode.getSync();
+		ooDecode.printOut();
+		for (uint8_t i=0;i<16;i++)
+			ooDecode.processMessage();
+
+		pass();
+	}
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+uint8_t rssiCallback() { return 0; };	// Dummy return if no rssi value can be retrieved from receiver
+
 
 void setup() {
 	randomSeed(A0);
 	Serial.begin(BAUDRATE);
+	ooDecode.setRSSICallback(&rssiCallback);
+	ooDecode.MSenabled = true;
+	ooDecode.MCenabled = true;
+	ooDecode.MUenabled = true;
 
-	//Test::exclude("*");
-	Test::include("mc_somfy_c");
+	Test::exclude("*");
+	Test::include("ms_nc");
 
 	Serial.println("---- Start of ----");
-
 
 }
 
