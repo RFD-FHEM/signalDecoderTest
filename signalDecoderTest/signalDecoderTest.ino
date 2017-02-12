@@ -23,10 +23,10 @@
 #include <ArduinoUnit.h>
 #define PROGNAME               "signalDecoderTest"
 #define PROGVERS               "0.1"
-#define DEBUGDETECT 4
-#define DEBUGDECODE 2
+//#define DEBUGDETECT 4
+//#define DEBUGDECODE 2
 #define BAUDRATE               115200
-#define DEBUG				   1
+//#define DEBUG				   1
 
 #include "output.h"
 #include "FastDelegate.h"
@@ -40,7 +40,58 @@
 SignalDetectorClass  ooDecode;
 ManchesterpatternDecoder mcdecoder(&ooDecode);			// Init Manchester Decoder class
 
+testing(basic_tol)
+{
+	assertFalse(ooDecode.inTol(-1061, 908, 212));
+	assertTrue(ooDecode.inTol(1061, 908, 212));
+	
+	pass();
+}
 
+testing(basic_findpatt)
+{
+	ooDecode.pattern[0] = 908;
+	ooDecode.patternLen = 1;
+	int8_t idx =ooDecode.findpatt(-1061);
+
+	assertLess(idx,0);
+
+	idx = ooDecode.findpatt(900);
+	assertMoreOrEqual(idx, 0);
+
+	pass();
+}
+
+
+testing(basic_samesign)
+{
+	bool state;
+	uint16_t i = 0;
+
+	int16_t pulse = -500;
+
+
+	for (i=0; i < 20; i++)
+	{
+		state = ooDecode.decode(&pulse);
+	}
+	pulse = -32001;
+	for (i = 0; i < 10; i++)
+	{
+		state = ooDecode.decode(&pulse);
+	}
+	pulse = 1000;
+	state = ooDecode.decode(&pulse);
+	//ooDecode.printOut();
+
+
+	assertEqual(ooDecode.patternLen, 2);
+	assertFalse(state);
+	assertEqual(ooDecode.messageLen, 2);
+	
+	pass();
+
+}
 
 testing(mc_decode_osv2)
 {
@@ -348,9 +399,9 @@ testing(mc_long_1)
 		base = "0B0F9FFA555AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAA";  //56 Hex digits (56*4=224)
 		assertEqual(mcStr, base); // may not compile or give warning
 		//mcdecoder.reset();
-		assertEqual(1, mcdecoder.ManchesterBits.getValue(220));
-		assertEqual(0, mcdecoder.ManchesterBits.getValue(221));
-		assertEqual(1, mcdecoder.ManchesterBits.getValue(222));
+		assertEqual(1, *mcdecoder.ManchesterBits.getValue(220));
+		assertEqual(0, *mcdecoder.ManchesterBits.getValue(221));
+		assertEqual(1, *mcdecoder.ManchesterBits.getValue(222));
 		Serial.println("part two ");
 
 
@@ -780,7 +831,7 @@ testing(mc_somfy_a)
 		assertFalse(mcdecoder.isManchester());
 		ooDecode.calcHisto();
 		//ooDecode.printOut();
-		//assertTrue(mcdecoder.isManchester());
+		assertTrue(mcdecoder.isManchester());
 		assertFalse(state);
 		//assertEqual(ooDecode.pattern[ooDecode.message[ooDecode.messageLen - 1]], pData[s_Stream[i - 1]]);
 
@@ -918,7 +969,9 @@ testing(mc_somfy_b)
 		ooDecode.reset();
 		mcdecoder.reset();
 
-		String dstr(F("MU;P0=387;P1=-420;P2=788;P3=-822;P4=-31734;P5=2719;P6=-2726;P7=4748;D=01230121010101010323232101010321032101010101010101045656565656565671232101010301230121010301230121010301230121010101010323232101010321032101010101010101045656565656565671232101010301230121010301230121010301230121010101010323232101010321032101010101010101;CP=0;O;"));
+		//String dstr(F("MU;P0=387;P1=-420;P2=788;P3=-822;P4=-31734;P5=2719;P6=-2726;P7=4748;D=01230121010101010323232101010321032101010101010101045656565656565671232101010301230121010301230121010301230121010101010323232101010321032101010101010101045656565656565671232101010301230121010301230121010301230121010101010323232101010321032101010101010101;CP=0;O;"));
+		String dstr(F("MU;P0=4850;P1=645;P2=-654;P3=383;P4=-1276;P5=1234;P6=-2501;P7=2504;D=01234523452343254125454545412121212125212121212121212121412121212125216767676767676045452141254121252141212121212521412121254541252121214125214521452141254125454545412121212125212121212121212145212121212145676767676767604545214125412125214121212121252141;CP=1;R=247;O;"));
+
 		state = import_sigdata(&dstr);
 		dstr = "";
 
@@ -926,7 +979,7 @@ testing(mc_somfy_b)
 		//state = ooDecode.decode(&pData[5]);
 		assertFalse(mcdecoder.isManchester());
 		ooDecode.calcHisto();
-		//ooDecode.printOut();
+		ooDecode.printOut();
 
 		assertTrue(mcdecoder.isManchester());
 		assertFalse(state);
@@ -980,7 +1033,6 @@ testing(mc_somfy_c)
 		bool state;
 		ooDecode.reset();
 		mcdecoder.reset();
-
 
 		String dstr(F("MU;P0=-2544;P1=4755;P2=-674;P3=603;P4=-1319;P5=1242;P6=-26783;P7=2453;D=22323232523232345234523232343232325232345432323252345234325452345234523432523436707070707070701454543232323252323234523452323234323232523234543232325234523432545234523452343252343670707070707070145454323232325232323452345232323432323252323454323232523452;CP=3;O"));
 		state = import_sigdata(&dstr);                                                         
@@ -1303,10 +1355,14 @@ void setup() {
 	ooDecode.MCenabled = true;
 	ooDecode.MUenabled = true;
 
-	Test::exclude("*");
-	Test::include("ms_nc");
-
 	Serial.println("---- Start of ----");
+	delay(400);
+
+
+	//Test::exclude("*");
+	Test::include("mc_decode_osv2");
+	//Test::include("basic*");
+
 
 }
 
