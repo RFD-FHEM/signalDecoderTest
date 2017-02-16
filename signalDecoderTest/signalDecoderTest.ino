@@ -181,8 +181,9 @@ testing(speed_calcHisto)
 		unsigned long now = micros();
 		ooDecode.calcHisto();
 		unsigned long after = micros();
-
-		assertLessOrEqual(after - now, 19*(i+1));
+		
+		//assertLessOrEqual(after - now, 8 * (i + 1)); // Zeit mit message array
+		assertLessOrEqual(after - now, 19*(i+1));  // zeit mit Bitstore Objekt
 
 		DigitalSimulate(-(pulse));
 		if (i % 2)
@@ -195,7 +196,9 @@ testing(speed_calcHisto)
 	unsigned long now = micros();
 	ooDecode.calcHisto();
 	unsigned long after = micros();
-	assertLessOrEqual(after - now, 2196);
+	//assertLessOrEqual(after - now, 300);  // Zeit mit message array
+
+	assertLessOrEqual(after - now, 2196); // Zeit mit Bitstore Objekt
 
 	pass();
 }
@@ -219,7 +222,9 @@ testing(speed_processMessage)
 	unsigned long now = micros();
 	state = ooDecode.decode(&endpulse);
 	unsigned long after = micros();
-	assertLessOrEqual(after - now, 24600);
+	//assertLessOrEqual(after - now, 21680);  // Zeit mit message array
+
+	assertLessOrEqual(after - now, 24600);  // Zeit mit Bitstore Objekt
 	
 
 	pass();
@@ -555,7 +560,7 @@ testing(mc_long_1)
 		base = "0B0F9FFA555AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAA";  //56 Hex digits (56*4=224)
 		assertEqual(mcStr, base); // may not compile or give warning
 		//mcdecoder.reset();
-		assertEqual(1, mcdecoder.ManchesterBits[220]);
+		assertEqual(1, mcdecoder.ManchesterBits.getValue(220));
 		assertEqual(0, mcdecoder.ManchesterBits.getValue(221));
 		assertEqual(1, mcdecoder.ManchesterBits.getValue(222));
 		Serial.println("part two ");
