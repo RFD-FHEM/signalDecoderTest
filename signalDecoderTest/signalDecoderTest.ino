@@ -26,7 +26,7 @@
 //#define DEBUGDETECT 4
 //#define DEBUGDECODE 2
 #define BAUDRATE               115200
-//#define DEBUG				   1
+#define DEBUG				   1
 
 #include "output.h"
 #include "FastDelegate.h"
@@ -63,6 +63,9 @@ testing(basic_findpatt)
 }
 
 
+
+
+
 testing(basic_samesign)
 {
 	bool state;
@@ -91,6 +94,159 @@ testing(basic_samesign)
 	
 	pass();
 
+}
+
+
+
+testing(speed_calibrate)
+{
+	long now = micros();
+	yield();
+	long after = micros();
+	assertLessOrEqual(after - now, 4);
+	pass();
+}
+
+
+testing(speed_findpatt)
+{
+	ooDecode.reset();
+	ooDecode.pattern[0] = 100;
+	ooDecode.pattern[1] = -100;
+	ooDecode.pattern[2] = -908;
+	ooDecode.pattern[3] = 908;
+
+	ooDecode.patternLen = 4;
+
+
+	long now = micros();
+	int idx = ooDecode.findpatt(900);	
+	long after = micros();
+	assertLessOrEqual(after - now, 32);
+
+	pass();
+}
+
+
+testing(speed_addData)
+{
+	ooDecode.reset();
+
+
+	long now = micros();
+	ooDecode.addData(1);
+	long after = micros();
+	assertLessOrEqual(after - now, 12);
+
+	pass();
+}
+
+
+testing(speed_decode)
+{
+	ooDecode.reset();
+	int pulse = 500;
+	
+	unsigned long now = micros();
+	bool state=ooDecode.decode(&pulse);
+	unsigned long after = micros();
+	assertLessOrEqual(after - now, 44);
+
+	pulse = -pulse;
+	now = micros();
+	state = ooDecode.decode(&pulse);
+	after = micros();
+	assertLessOrEqual(after - now, 45);
+
+	now = micros();
+	ooDecode.calcHisto();
+	after = micros();
+	assertLessOrEqual(after - now, 40);
+
+
+
+
+
+	pass();
+}
+
+
+testing(speed_calcHisto)
+{
+	ooDecode.reset();
+	int pulse = 500;
+
+	for (uint8_t i = 0; i < 127; i++)
+	{
+		unsigned long now = micros();
+		ooDecode.calcHisto();
+		unsigned long after = micros();
+
+		assertLessOrEqual(after - now, 19*(i+1));
+
+		DigitalSimulate(-(pulse));
+		if (i % 2)
+			DigitalSimulate(pulse * 2);
+		else
+			DigitalSimulate(pulse * 4);
+	}
+
+
+	unsigned long now = micros();
+	ooDecode.calcHisto();
+	unsigned long after = micros();
+	assertLessOrEqual(after - now, 2196);
+
+	pass();
+}
+
+testing(speed_processMessage)
+{
+	ooDecode.reset();
+	int pulse = 500;
+
+	for (uint8_t i = 0; i < 127; i++)
+	{
+		DigitalSimulate(-(pulse));
+		if (i % 2)
+			DigitalSimulate(pulse * 2);
+		else
+			DigitalSimulate(pulse * 4);
+	}
+
+	int endpulse = -32001;
+
+	unsigned long now = micros();
+	state = ooDecode.decode(&endpulse);
+	unsigned long after = micros();
+	assertLessOrEqual(after - now, 24600);
+	
+
+	pass();
+}
+
+testing(speed_compressPattern)
+{
+	ooDecode.reset();
+	int pulse = 500;
+
+	for (uint8_t i = 0; i < 127; i++)
+	{
+		DigitalSimulate(-(pulse));
+		if (i % 2)
+			DigitalSimulate(pulse * 2);
+		else
+			DigitalSimulate(pulse * 4);
+	}
+	ooDecode.pattern[2] = 600; 
+
+
+	unsigned long now = micros();
+	ooDecode.compress_pattern();
+	unsigned long after = micros();
+	assertLessOrEqual(after - now, 2260);
+
+	pass();
 }
 
 testing(mc_decode_osv2)
@@ -399,9 +555,9 @@ testing(mc_long_1)
 		base = "0B0F9FFA555AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAA";  //56 Hex digits (56*4=224)
 		assertEqual(mcStr, base); // may not compile or give warning
 		//mcdecoder.reset();
-		assertEqual(1, *mcdecoder.ManchesterBits.getValue(220));
-		assertEqual(0, *mcdecoder.ManchesterBits.getValue(221));
-		assertEqual(1, *mcdecoder.ManchesterBits.getValue(222));
+		assertEqual(1, mcdecoder.ManchesterBits[220]);
+		assertEqual(0, mcdecoder.ManchesterBits.getValue(221));
+		assertEqual(1, mcdecoder.ManchesterBits.getValue(222));
 		Serial.println("part two ");
 
 
@@ -472,7 +628,7 @@ testing(mc_long_2) //Maverick et733
 
 
 
-
+		ooDecode.calcHisto(0,1);
 		assertFalse(mcdecoder.isManchester());
 		//assertEqual(130,ooDecode.messageLen);
 
@@ -803,7 +959,7 @@ testing(mc_somfy_a)
 		
 
 		int s_Data[] = {
-			 2608, -2552, 2592, -2572, 2432, -2572, 2584, -2572, 2580, -2584, 2572, -2576, 2576, -2584, 4844, -1224, 1364, -1224, 1204, -756, 604, -616, 592, -760, 608, -620, 592, -1376, 1204, -1220, 756, -624, 1192, -608, 760, -604, 604, -616, 600, -1368, 1204, -1368, 600, -628, 1200, -772, 584, -612, 604, -616, 748, -1220, 1208, -1372, 604, -604, 1364, -608, 604, -628, 584, -760, 612, -612, 592, -768, 608, -1212, 1352, -1236, 1200, -1360, 1216, -620, 748, -612, 600, -608, 604, -1360, 1212, -612, 764, -1208, 1208, -768, 604, -608, 596, -628, 736, -624, 588, -624, 592, -760, 608, -608, 600, -620, 740, -32001,
+			 2608, -2552, 2592, -2572, 2432, -2572, 2584, -2572, 2580, -2584, 2572, -2576, 2576, -2584, 4844, -1224, 1364, -1224, 1204, -756, 604, -616, 592, -760, 608, -620, 592, -1376, 1204, -1220, 756, -624, 1192, -608, 760, -604, 604, -616, 600, -1368, 1204, -1368, 600, -628, 1200, -772, 584, -612, 604, -616, 748, -1220, 1208, -1372, 604, -604, 1364, -608, 604, -628, 584, -760, 612, -612, 592, -768, 608, -1212, 1352, -1236, 1200, -1360, 1216, -620, 748, -612, 600, -608, 604, -1360, 1212, -612, 764, -1208, 1208, -768, 604, -608, 596, -628, 736, -624, 588, -624, 592, -760, 608, -608, 600, -620, 740, -32000,
 			//-2304, 2640, -2532, 4856, -1412, 1156, -1428, 1148, -712, -836, 304, -672, 548, -856, 348, -1340, 1252, -1308, 512, -640, 1324, -688, 524, -700, 668, -692, 528, -1264, 1300, -1284, 540, -820, 1156, -644, 580, -800, 552, -652, 568, -1424, 1148, -1284, 696, -656, 1164, -644, 720, -656, 556, -664, 552, -824, 540, -636, 584, -1388, 1176, -1416, 1172, -1236, 1340, -636, 572, -656, 708, -644, 572, -1252, 1328, -644, 572, -1388, 1184, -648, 568, -784, 580, -652, 564, -636, 728, -648, 568, -656, 552, -804, 564, -648, 556, -32001
 
 		};
@@ -830,7 +986,8 @@ testing(mc_somfy_a)
 		//state = ooDecode.decode(&pData[5]);
 		assertFalse(mcdecoder.isManchester());
 		ooDecode.calcHisto();
-		//ooDecode.printOut();
+		ooDecode.compress_pattern();
+		ooDecode.printOut();
 		assertTrue(mcdecoder.isManchester());
 		assertFalse(state);
 		//assertEqual(ooDecode.pattern[ooDecode.message[ooDecode.messageLen - 1]], pData[s_Stream[i - 1]]);
@@ -877,14 +1034,16 @@ testing(mu_decode_dooya)
 			if (j < 2) {
 				assertEqual(ooDecode.patternLen, 5);
 				assertFalse(state);
+				ooDecode.printOut();
+
 			}
 			i = 0;
 		}
 
 		const int16_t pause_pulse = 32160;
 		state = ooDecode.decode(&pause_pulse);;
-
-		assertEqual(ooDecode.patternLen, 6);
+		ooDecode.printOut();
+		assertEqual(ooDecode.patternLen, 8);
 
 		//ooDecode.printOut();
 
@@ -892,7 +1051,7 @@ testing(mu_decode_dooya)
 		//assertEqual(ooDecode.pattern[ooDecode.message[ooDecode.messageLen - 1]], pData[s_Stream[i - 1]]);
 
 		pass();
-
+		
 		//assertTrue(state);
 	}
 
@@ -969,8 +1128,8 @@ testing(mc_somfy_b)
 		ooDecode.reset();
 		mcdecoder.reset();
 
-		//String dstr(F("MU;P0=387;P1=-420;P2=788;P3=-822;P4=-31734;P5=2719;P6=-2726;P7=4748;D=01230121010101010323232101010321032101010101010101045656565656565671232101010301230121010301230121010301230121010101010323232101010321032101010101010101045656565656565671232101010301230121010301230121010301230121010101010323232101010321032101010101010101;CP=0;O;"));
-		String dstr(F("MU;P0=4850;P1=645;P2=-654;P3=383;P4=-1276;P5=1234;P6=-2501;P7=2504;D=01234523452343254125454545412121212125212121212121212121412121212125216767676767676045452141254121252141212121212521412121254541252121214125214521452141254125454545412121212125212121212121212145212121212145676767676767604545214125412125214121212121252141;CP=1;R=247;O;"));
+		String dstr(F("MU;P0=387;P1=-420;P2=788;P3=-822;P4=-31734;P5=2719;P6=-2726;P7=4748;D=01230121010101010323232101010321032101010101010101045656565656565671232101010301230121010301230121010301230121010101010323232101010321032101010101010101045656565656565671232101010301230121010301230121010301230121010101010323232101010321032101010101010101;CP=0;O;"));
+		//String dstr(F("MU;P0=4850;P1=645;P2=-654;P3=383;P4=-1276;P5=1234;P6=-2501;P7=2504;D=01234523452343254125454545412121212125212121212121212121412121212125216767676767676045452141254121252141212121212521412121254541252121214125214521452141254125454545412121212125212121212121212145212121212145676767676767604545214125412125214121212121252141;CP=1;R=247;O;"));
 
 		state = import_sigdata(&dstr);
 		dstr = "";
@@ -1007,7 +1166,8 @@ testing(mc_somfy_b)
 
 
 		mcdecoder.getMessageHexStr(&mcStr);
-		base = "D8150900";
+		base = "D8150900"; // früher 
+		     
 		        
 		assertEqual(mcStr, base); // may not compile or give warning
 
@@ -1359,9 +1519,9 @@ void setup() {
 	delay(400);
 
 
-	//Test::exclude("*");
-	Test::include("mc_decode_osv2");
-	//Test::include("basic*");
+	Test::exclude("*"); //mc_long_2 mc_long_1
+	//Test::include("mc_long_2");
+	Test::include("speed*");
 
 
 }
