@@ -182,8 +182,7 @@ testing(speed_calcHisto)
 		ooDecode.calcHisto();
 		unsigned long after = micros();
 		
-		//assertLessOrEqual(after - now, 8 * (i + 1)); // Zeit mit message array
-		assertLessOrEqual(after - now, 19*(i+1));  // zeit mit Bitstore Objekt
+		assertLessOrEqual(after - now, 8 * (i + 1)); // zeit mit Bitstore Objekt
 
 		DigitalSimulate(-(pulse));
 		if (i % 2)
@@ -198,7 +197,7 @@ testing(speed_calcHisto)
 	unsigned long after = micros();
 	//assertLessOrEqual(after - now, 300);  // Zeit mit message array
 
-	assertLessOrEqual(after - now, 2196); // Zeit mit Bitstore Objekt
+	assertLessOrEqual(after - now, 456); // Zeit mit Bitstore Objekt
 
 	pass();
 }
@@ -222,9 +221,8 @@ testing(speed_processMessage)
 	unsigned long now = micros();
 	state = ooDecode.decode(&endpulse);
 	unsigned long after = micros();
-	//assertLessOrEqual(after - now, 21680);  // Zeit mit message array
+	assertLessOrEqual(after - now, 21128); // Zeit mit Bitstore Objekt
 
-	assertLessOrEqual(after - now, 24600);  // Zeit mit Bitstore Objekt
 	
 
 	pass();
@@ -1524,10 +1522,12 @@ void setup() {
 	delay(400);
 
 
-	Test::exclude("*"); //mc_long_2 mc_long_1
+	
 	//Test::include("mc_long_2");
-	Test::include("speed*");
+	Test::exclude("*"); //mc_long_2 mc_long_1
 
+	Test::include("speed*");
+	
 
 }
 
