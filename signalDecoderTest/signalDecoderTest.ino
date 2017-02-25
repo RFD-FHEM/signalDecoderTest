@@ -156,7 +156,7 @@ testing(speed_decode)
 	now = micros();
 	state = ooDecode.decode(&pulse);
 	after = micros();
-	assertLessOrEqual(after - now, 45);
+	assertLessOrEqual(after - now, 48);
 
 	now = micros();
 	ooDecode.calcHisto();
@@ -197,7 +197,7 @@ testing(speed_calcHisto)
 	unsigned long after = micros();
 	//assertLessOrEqual(after - now, 300);  // Zeit mit message array
 
-	assertLessOrEqual(after - now, 456); // Zeit mit Bitstore Objekt
+	assertLessOrEqual(after - now, 464); // Zeit mit Bitstore Objekt
 
 	pass();
 }
@@ -611,7 +611,7 @@ testing(mc_long_2) //Maverick et733
 		ooDecode.MUenabled = true;
 		const int pause = 5000;
 		const int pulse = -230;
-	                   	
+		                
 		String dstr2(F("AA9995595555595999A9A9A669"));
 		for (uint8_t r = 0; r < 4; r++)
 		{
@@ -625,6 +625,12 @@ testing(mc_long_2) //Maverick et733
 
 			state = import_mcdata(&dstr2, 0, dstr2.length(), 250);
 			ooDecode.printOut();
+			Serial.print(" vc:");
+			Serial.print(ooDecode.message.valcount);
+			Serial.print(" bc:");
+			Serial.print(ooDecode.message.bytecount);
+
+
 			Serial.print("<repeat="); Serial.print(r); Serial.println(";");
 
 		}
@@ -1524,10 +1530,10 @@ void setup() {
 
 	
 	//Test::include("mc_long_2");
-	Test::exclude("*"); //mc_long_2 mc_long_1
 
-	Test::include("speed*");
-	
+	Test::exclude("*"); //mc_long_2 mc_long_1
+	Test::include("*speed*");
+
 
 }
 
