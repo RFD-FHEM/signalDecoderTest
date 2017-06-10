@@ -254,6 +254,7 @@ testing(speed_compressPattern)
 
 testing(mc_decode_osv2)
 {
+	
 	bool state;
 	int pData[6] = {
 		2000,392,908,-1061,-569,-32000
@@ -287,6 +288,7 @@ testing(mc_decode_osv2)
 
 testing(mc_isManchester_osv2)
 {
+
 	if checkTestDone(mc_decode_osv2) {
 		//assertFalse(mcdecoder.isManchester());
 		ooDecode.calcHisto();
@@ -625,7 +627,7 @@ testing(mc_long_2) //Maverick et733
 
 			state = import_mcdata(&dstr2, 0, dstr2.length(), 250);
 			ooDecode.printOut();
-			Serial.print(" vc:");
+			Serial.print(" vc:"); 
 			Serial.print(ooDecode.message.valcount);
 			Serial.print(" bc:");
 			Serial.print(ooDecode.message.bytecount);
@@ -1503,7 +1505,39 @@ testing(ms_nc)
 }
 
 
+testing (MC_warema_01)
+{
+	bool state;
+	ooDecode.reset();
+	mcdecoder.reset();
 
+	ooDecode.mcMinBitLen = 17;
+	mcdecoder.minbitlen = 17;
+	ooDecode.MSenabled = true;
+	ooDecode.MCenabled = true;
+	ooDecode.MUenabled = true;
+											
+	//String dstr(F("MU;P0=-8750;P1=875;P2=-875;P3=-1750;P4=1750;P5=-5250;P6=-6125;P7=32001;D=0131212434213121212121215134213121243151342121343467;"));
+
+	String dstr(F("MU;P0=-2988;P1=1762;P2=-1781;P3=-902;P4=871;P5=6762;P6=5012;D=0121342434343434352434313434243521342134343436;"));
+    	                                                                                    
+
+	state = import_sigdata(&dstr);
+	ooDecode.calcHisto();
+	ooDecode.processMessage();
+
+	ooDecode.calcHisto();
+	ooDecode.printOut();
+	ooDecode.processMessage();
+
+	//ooDecode.calcHisto();
+	//ooDecode.processMessage();
+
+	//assertTrue(mcdecoder.isManchester());
+
+
+	pass();
+}
 
 
 
@@ -1531,8 +1565,8 @@ void setup() {
 	
 	//Test::include("mc_long_2");
 
-	Test::exclude("*"); //mc_long_2 mc_long_1
-	Test::include("*speed*");
+	Test::exclude("speed*"); //mc_long_2 mc_long_1
+	Test::include("*");
 
 
 }
