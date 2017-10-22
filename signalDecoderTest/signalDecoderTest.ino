@@ -23,8 +23,8 @@
 #include <ArduinoUnit.h>
 #define PROGNAME               "signalDecoderTest"
 #define PROGVERS               "0.1"
-//#define DEBUGDETECT 4
-//#define DEBUGDECODE 2
+#define DEBUGDETECT 4
+#define DEBUGDECODE 2
 #define BAUDRATE               115200
 #define DEBUG				   1
 
@@ -39,6 +39,51 @@
 //Decoder
 SignalDetectorClass  ooDecode;
 ManchesterpatternDecoder mcdecoder(&ooDecode);			// Init Manchester Decoder class
+
+
+bool import_sigdata(String *cmdstring, const bool raw = false)
+{
+
+	String msg_part;
+	int16_t startpos = 0;
+	int16_t endpos = 0;
+	int buckets[8] = {};
+	bool state = false;
+	while (true)
+	{
+		startpos = endpos + 1;    // Set startpos to endpos to extract next part
+		endpos = cmdstring->indexOf(";", startpos);     			 // search next   ";"
+		if (endpos == -1 || startpos == -1) break;
+
+
+		if (cmdstring->charAt(startpos) == 'P' && cmdstring->charAt(startpos + 2) == '=') // Do some basic detection if data matches what we expect
+		{
+			uint8_t counter = cmdstring->substring(startpos + 1, startpos + 2).toInt(); // extract the pattern number
+			buckets[counter] = cmdstring->substring(startpos + 3, endpos).toInt();
+			if (raw)
+			{
+				ooDecode.pattern[counter] = buckets[counter];
+			}
+
+		}
+		else if (cmdstring->charAt(startpos) == 'D') {
+			for (int i = startpos + 2; i < endpos; i++)
+			{
+				//state = DigitalSimulate(buckets[cmdstring->substring(i, i + 1).toInt()]);
+				if (!raw)
+					state = ooDecode.decode(&buckets[cmdstring->substring(i, i + 1).toInt()]);
+				else {
+					ooDecode.addData(cmdstring->substring(i, i + 1).toInt());
+				}
+			}
+
+		}
+
+	}
+	return state;
+
+
+}
 
 testing(basic_tol)
 {
@@ -252,10 +297,49 @@ testing(speed_compressPattern)
 	pass();
 }
 
+testing(mc_basic_1)
+{
+	bool state;
+	ooDecode.reset();
+	mcdecoder.reset();
+	mcdecoder.minbitlen = 8;
+	String dstr(F("MU;P0=-300;P1=300;P2=-600;P3=600;D=0101010323010;")); //11110100
+	state = import_sigdata(&dstr); 
+	dstr = "";
+
+	assertFalse(mcdecoder.isManchester());
+	ooDecode.calcHisto();
+	ooDecode.printOut();
+	assertTrue(mcdecoder.isManchester());
+	assertFalse(state);
+	
+	
+	bool result = mcdecoder.doDecode();
+	assertTrue(result);
+	assertTrue(mcdecoder.mc_start_found);
+	assertTrue(mcdecoder.mc_sync);
+	assertFalse(mcdecoder.pdec->mcDetected);
+	//assertTrue(result);
+	assertEqual(mcdecoder.ManchesterBits.bytecount, 0);  // 7 Bits
+	assertEqual(mcdecoder.ManchesterBits.valcount, 8);
+
+	String mcStr;
+	String base;
+
+
+	mcdecoder.getMessageHexStr(&mcStr);
+	base = "F4";
+	assertEqual(mcStr, base); // may not compile or give warning
+	pass();
+
+}
+
 testing(mc_decode_osv2)
 {
-	
 	bool state;
+	ooDecode.reset();
+	mcdecoder.reset();
+
 	int pData[6] = {
 		2000,392,908,-1061,-569,-32000
 	};
@@ -323,7 +407,8 @@ testing(mc_getHexStr_osv2)
 		mcdecoder.getMessageHexStr(&mcStr);
 
 		String base;
-		base = "AAAAAAAA666A5A595595555A556996555566A565A6"; // "AAAAAAAB332B4B4D54D5554B552CD3555532B534B2";
+		        
+		base = "AAAAAAAA666A5A595595555A556996555566A565A6"; // Todo: Hier fehlt das 1. Bit daher schlägt dieser Test fehl
 		assertEqual(mcStr, base); // may not compile or give warning
 		pass();
 	}
@@ -373,7 +458,7 @@ testing(mc_doDecode_osv2_append)
 		//ooDecode.printOut();
 
 		assertEqual(ooDecode.patternLen, 4);
-		assertEqual(ooDecode.pattern[ooDecode.message[ooDecode.messageLen -1]], pData[s_Stream[i - 1]]);
+		assertEqual(ooDecode.pattern[ooDecode.message[ooDecode.messageLen - 1]], pData[s_Stream[i - 1]]);
 		state = ooDecode.decode(&pData[5]);
 		assertFalse(state);
 
@@ -382,16 +467,16 @@ testing(mc_doDecode_osv2_append)
 
 		assertTrue(state);
 		ooDecode.reset();
-		
-		
+
+
 		/*
 		for (uint8_t j = 1; j < 3; j++)
 		{
-			i = 0;
-			for (; i < len; i++)
-			{
-				state = ooDecode.decode(&pData[s_Stream[i]]);
-			}
+		i = 0;
+		for (; i < len; i++)
+		{
+		state = ooDecode.decode(&pData[s_Stream[i]]);
+		}
 		}
 		state = ooDecode.decode(&pData[5]);
 		assertEqual(ooDecode.patternLen, 5);
@@ -409,15 +494,33 @@ testing(mc_doDecode_osv2_append)
 	}
 }
 
+testing(mc_osv2_finished)
+{
+	if (
+		checkTestDone(mc_decode_osv2) &&
+		checkTestDone(mc_isManchester_osv2) &&
+		checkTestDone(mc_getHexStr_osv2) &&
+		checkTestDone(mc_MCBits) &&
+		checkTestDone(mc_doDecode_osv2_append)
+	)
+	{
+		pass();
+	}
+}
+
+
+/*
 testing(mc_finished)
 {
 	if (checkTestDone(mc_doDecode_osv2_append))
 		pass();
 }
+*/
+
 
 testing(ms_dodecode_NCWS)
 {
-	if (checkTestDone(mc_finished))
+	if (checkTestDone(mc_osv2_finished))
 	{
 		bool state;
 		
@@ -466,7 +569,7 @@ testing(ms_dodecode_NCWS)
 
 testing(mu_dodecode_TX3)
 {
-	if (checkTestDone(ms_dodecode_NCWS))
+	if (checkTestDone(ms_dodecode_NCWS) && checkTestDone(mc_osv2_finished) )
 	{
 		bool state;
 
@@ -518,7 +621,7 @@ testing(mu_dodecode_TX3)
 
 testing(mc_long_1)
 {
-	if (checkTestDone(mu_dodecode_TX3))
+	if (checkTestDone(mu_dodecode_TX3) && checkTestDone(mc_osv2_finished))
 	{
 
 		bool state;
@@ -549,7 +652,7 @@ testing(mc_long_1)
 		assertFalse(state);
 
 		bool result = mcdecoder.doDecode();
-		assertEqual(226, mcdecoder.ManchesterBits.valcount-1);
+		assertEqual(227, mcdecoder.ManchesterBits.valcount-1);
 		assertEqual(253, ooDecode.messageLen);
 		assertFalse(mcdecoder.pdec->mcDetected);
 		assertTrue(result);
@@ -613,7 +716,7 @@ testing(mc_long_2) //Maverick et733
 		ooDecode.MUenabled = true;
 		const int pause = 5000;
 		const int pulse = -230;
-		                
+						
 		String dstr2(F("AA9995595555595999A9A9A669"));
 		for (uint8_t r = 0; r < 4; r++)
 		{
@@ -636,9 +739,7 @@ testing(mc_long_2) //Maverick et733
 			Serial.print("<repeat="); Serial.print(r); Serial.println(";");
 
 		}
-
-
-
+				
 		ooDecode.calcHisto(0,1);
 		assertFalse(mcdecoder.isManchester());
 		//assertEqual(130,ooDecode.messageLen);
@@ -652,25 +753,19 @@ testing(mc_long_2) //Maverick et733
 		assertFalse(state);
 
 		bool result = mcdecoder.doDecode();
-		assertEqual(103, mcdecoder.ManchesterBits.valcount);
+		assertEqual(104, mcdecoder.ManchesterBits.valcount);
 		assertTrue(mcdecoder.mc_start_found);
 		assertTrue(mcdecoder.mc_sync);
 		assertFalse(mcdecoder.pdec->mcDetected);
 		//assertFalse(result);
-
-
-
-
+		
 		String mcStr;
 		String base;
-
-
+		
 		mcdecoder.getMessageHexStr(&mcStr);
-		base = "AA9995595555595999A9A9A668";  // eigentlich AA9995595555595999A9A9A669, aber es fehlt der letzte Pulse
+		base = "AA9995595555595999A9A9A669";  // eigentlich AA9995595555595999A9A9A669, aber es fehlt der letzte Pulse
 		assertEqual(mcStr, base); // may not compile or give warning
-
-
-
+		
 		pass();
 	}
 	//assertTrue(state);
@@ -739,41 +834,6 @@ bool import_mcdata(String *cmdstring, const uint8_t startpos, const uint8_t endp
 }
 
 
-bool import_sigdata( String *cmdstring)
-{
-
-	String msg_part;
-	int16_t startpos = 0;
-	int16_t endpos = 0;
-	int buckets[8] = {};
-	bool state;
-	while (true)
-	{
-		startpos = endpos + 1;    // Set startpos to endpos to extract next part
-		endpos = cmdstring->indexOf(";", startpos);     			 // search next   ";"
-		if (endpos == -1 || startpos == -1) break;
-
-
-		if (cmdstring->charAt(startpos) == 'P' && cmdstring->charAt(startpos+2) == '=') // Do some basic detection if data matches what we expect
-		{
-			uint8_t counter = cmdstring->substring(startpos+1, startpos+2).toInt(); // extract the pattern number
-			buckets[counter] = cmdstring->substring(startpos+3,endpos).toInt();
-
-		}
-		else if (cmdstring->charAt(startpos) == 'D') {
-			for (int i=startpos+2; i < endpos; i++)
-			{
-				//state = DigitalSimulate(buckets[cmdstring->substring(i, i + 1).toInt()]);
-				state = ooDecode.decode(&buckets[cmdstring->substring(i, i + 1).toInt()]);
-			}
-
-		}
-		
-	}
-	return state;
-
-
-}
 
 void random_import()
 {
@@ -787,7 +847,7 @@ void random_import()
 
 testing(mc_osv3_a)
 {
-	if (checkTestDone(mu_dodecode_TX3))
+	if (checkTestDone(mu_dodecode_TX3) && checkTestDone(mc_long_2) && checkTestDone(mc_osv2_finished) )
 	{
 		bool state;
 		ooDecode.reset();
@@ -810,13 +870,13 @@ testing(mc_osv3_a)
 
 		bool result = mcdecoder.doDecode();
 #ifndef B12
-		assertTrue(mcdecoder.mc_start_found);
+		assertTrue(mcdecoder.mc_start_found);   
 		assertTrue(mcdecoder.mc_sync);
-		assertFalse(mcdecoder.pdec->mcDetected);
+		assertFalse(mcdecoder.pdec->mcDetected);  
 #endif
 		assertTrue(result);
 		assertEqual(mcdecoder.ManchesterBits.bytecount, 9);  
-		assertEqual(mcdecoder.ManchesterBits.valcount, 79);
+		assertEqual(mcdecoder.ManchesterBits.valcount, 79);  // Reduziert, da korrekt ausgerichtet.
 	
 		String mcStr;
 		String base;
@@ -844,7 +904,7 @@ testing(mc_osv3_a)
 
 testing(mc_osv3_b)
 {
-	if (checkTestDone(mu_dodecode_TX3))
+	if (checkTestDone(mu_dodecode_TX3) && checkTestDone(mc_long_2) && checkTestDone(mc_osv2_finished))
 	{
 		bool state;
 		ooDecode.reset();
@@ -869,7 +929,7 @@ testing(mc_osv3_b)
 #ifndef B12
 		assertTrue(mcdecoder.mc_start_found);
 		assertTrue(mcdecoder.mc_sync);
-		assertTrue(mcdecoder.pdec->mcDetected);
+		assertTrue(mcdecoder.pdec->mcDetected); //Hier wird true erwartet, da er letzte Puls im Puffer ein short ist
 #endif
 		//assertTrue(result);
 		assertEqual(mcdecoder.ManchesterBits.bytecount, 19);
@@ -901,7 +961,7 @@ testing(mc_osv3_b)
 
 testing(mc_osv3_c)
 {
-	if (checkTestDone(mu_dodecode_TX3))
+	if (checkTestDone(mu_dodecode_TX3) && checkTestDone(mc_long_2) && checkTestDone(mc_osv2_finished))
 	{
 		bool state;
 		ooDecode.reset();
@@ -936,7 +996,7 @@ testing(mc_osv3_c)
 
 
 		mcdecoder.getMessageHexStr(&mcStr);
-		base = "000005075EB9C38CFFF6D96F5";
+		base = "000005075EB9C38CFFF6D96F58"; //100 Bits ergeben 25 HEx Zeichen + 1 Hex Zeichen mit einem Bit.
 		assertEqual(mcStr, base); // may not compile or give warning
 
 
@@ -947,7 +1007,7 @@ testing(mc_osv3_c)
 
 		mcStr = "";
 		mcdecoder.getMessageLenStr(&mcStr);
-		base = "L=100;";
+		base = "L=101;";
 		assertEqual(mcStr, base); // may not compile or give warning
 
 		pass();
@@ -957,7 +1017,7 @@ testing(mc_osv3_c)
 
 testing(mc_somfy_a)
 {
-	if (checkTestDone(mu_dodecode_TX3))
+	if (checkTestDone(mu_dodecode_TX3) && checkTestDone(mc_long_2) && checkTestDone(mc_osv2_finished))
 	{
 		bool state;
 		ooDecode.MSenabled = true;
@@ -1011,11 +1071,14 @@ testing(mc_somfy_a)
 
 testing(mu_decode_dooya)
 {
-	if (checkTestDone(ms_dodecode_NCWS))
+	if (checkTestDone(ms_dodecode_NCWS) && checkTestDone(mc_long_2) && checkTestDone(mc_osv2_finished))
 	{
+		verbosity = TEST_VERBOSITY_ALL;
+
+
 		bool state;
 		// MU;P0=-776;P1=323;P2=679;P3=-417;P4=-10548;P5=4904;P6=-1636;D=01023232310101023101010101010101023102323101010232310102310231010102310101024561010102323231010102310101010101010102310232310101023231010231023101010231010102456101010232323101010231010101010101010231023231010102323101023102310101023101010245610101023232;CP=1;O;
-		
+
 		ooDecode.reset();
 		ooDecode.MSenabled = true;
 		ooDecode.MCenabled = true;
@@ -1034,7 +1097,7 @@ testing(mu_decode_dooya)
 		uint16_t len = sizeof(signal_raw) / sizeof(signal_raw[0]);
 
 		uint16_t i = 0;
-
+		
 		for (uint8_t j = 1, i = 5; j < 5; j++)
 		{
 
@@ -1048,13 +1111,14 @@ testing(mu_decode_dooya)
 				ooDecode.printOut();
 
 			}
+
 			i = 0;
 		}
 
 		const int16_t pause_pulse = 32160;
 		state = ooDecode.decode(&pause_pulse);;
 		ooDecode.printOut();
-		assertEqual(ooDecode.patternLen, 8);
+		assertEqual(ooDecode.patternLen, 6);
 
 		//ooDecode.printOut();
 
@@ -1067,6 +1131,7 @@ testing(mu_decode_dooya)
 	}
 
 }
+
 
 
 
@@ -1157,7 +1222,7 @@ testing(mc_somfy_b)
 
 		//ooDecode.printOut();
 		bool result = mcdecoder.doDecode();
-		assertFalse(mcdecoder.mc_start_found);
+		//assertFalse(mcdecoder.mc_start_found);  // mc_Start_found wird durch isManchester gestzt. Prinzipiell interessiert uns das nicht weiter, ob das am Ende true oder false ist.
 		assertTrue(mcdecoder.mc_sync);
 		assertTrue(mcdecoder.pdec->m_truncated);
 		assertTrue(result);
@@ -1177,7 +1242,7 @@ testing(mc_somfy_b)
 
 
 		mcdecoder.getMessageHexStr(&mcStr);
-		base = "D8150900"; // früher 
+		base = "D8150900"; // Todo: hier fehlt das erste bit, dadurch schlägt der Test fehl  
 		     
 		        
 		assertEqual(mcStr, base); // may not compile or give warning
@@ -1542,7 +1607,38 @@ testing (MC_warema_01)
 
 
 
+testing(mu_racecond)
+{
 
+	if (checkTestDone(mu_dodecode_TX3) && checkTestDone(mc_long_2) && checkTestDone(mc_osv2_finished))
+	{
+		bool state;
+		ooDecode.reset();
+		mcdecoder.reset();
+
+		/*		
+		String dstr2(F("MU;P0=-86;P1=514;P4=-1933;P5=-948;P6=-4002;D=06040405040405050404050505050505050504040504040504040404040505050505050505060404050404050504040505050505050505040405040405040404040405050505050505050604040504040505040405050505050505050404050404050404040404050505050505050506141415141415151414151515151515;"));
+		import_sigdata(&dstr2, true);
+		int val = 514;
+		*/
+		String dstr2(F("MU;P0=-9201;P1=496;P2=-21;P3=-812;P4=144;P5=-1943;P7=3901;D=02342527272527252727252527252525252525252727252725252527252527272727272520252725272725272527272525272525252525252527272527252525272525272727272725202527252727252725272725252725252525252525272725272525252725252727272727252025272527272527252727252527252565;"));
+		import_sigdata(&dstr2, true);
+		int val = 500;
+
+		ooDecode.patternLen = 8;
+		ooDecode.pattern_pos = 8;
+		ooDecode.m_truncated = 1;
+
+		assertFalse(ooDecode.getClock());
+
+		ooDecode.printOut();
+
+		state = ooDecode.decode(&val);
+		ooDecode.printOut();
+
+		pass();
+	}
+}
 
 
 
@@ -1558,15 +1654,15 @@ void setup() {
 	ooDecode.MCenabled = true;
 	ooDecode.MUenabled = true;
 
-	Serial.println("---- Start of ----");
+	Serial.println("---- Start unittest ----");
 	delay(400);
 
 
 	
 	//Test::include("mc_long_2");
 
-	Test::exclude("speed*"); //mc_long_2 mc_long_1
-	Test::include("*");
+	Test::exclude("*"); //mc_long_2 mc_long_1
+	Test::include("*race*");
 
 
 }
