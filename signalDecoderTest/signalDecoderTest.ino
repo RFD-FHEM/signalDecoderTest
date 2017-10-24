@@ -1057,7 +1057,10 @@ testing(mc_somfy_a)
 
 		//state = ooDecode.decode(&pData[5]);
 		assertFalse(mcdecoder.isManchester());
+
 		ooDecode.calcHisto();
+		ooDecode.printOut();
+
 		ooDecode.compress_pattern();
 		ooDecode.printOut();
 		assertTrue(mcdecoder.isManchester());
@@ -1668,9 +1671,9 @@ void setup() {
 	//Test::include("mc_long_2");
 
 	Test::exclude("*speed*"); //mc_long_2 mc_long_1
-	Test::exclude("*"); //mc_long_2 mc_long_1
+	//Test::exclude("*"); //mc_long_2 mc_long_1
 
-	Test::include("mc_osv3_b");
+	Test::include("*somfy*");
 
 
 }
