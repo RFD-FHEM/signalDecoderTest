@@ -25,7 +25,7 @@
 #define PROGVERS               "0.1"
 #define DEBUGDETECT 4
 #define DEBUGDECODE 2
-#define BAUDRATE               57600
+#define BAUDRATE               250000
 #define DEBUG				   1
 
 #include "output.h"
@@ -391,9 +391,8 @@ testing(mc_decode_osv2)
 	uint16_t len = sizeof(s_Stream) / sizeof(s_Stream[0]);
 
 	uint16_t i = 0;
-	*ooDecode.last = pData[s_Stream[i]];  // Fill in at last
-
-	for (i++; i < len; i++)
+	//*ooDecode.last = pData[s_Stream[i]];  // Fill in at last
+	for (i=1; i < len; i++)
 	{
 		state = ooDecode.decode(&pData[s_Stream[i]]);
 	}
@@ -1604,8 +1603,8 @@ testing(mc_osv1_1)
 		//String dstr(F("MU;P0=-27224;P1=1673;P2=-1260;P3=-4304;P4=5712;P5=-6752;P6=3145;P7=-2718;D=345126712671212121267621712121212121212121212621712126;CP=1;R=245;"));
 
 		state = import_sigdata(&dstr);
-		ooDecode.printOut();
-		dstr = String(F("MU;P0=-27224;P1=1673;P2=-1260;P3=-4304;P4=5712;P5=-6752;P6=3145;P7=-2718;D=345126712671212121267621712121212121212121212621712126;CP=1;R=245;"));
+		ooDecode.printOut();                                           
+		dstr = String(F("MU;P0=-27224;P1=1673;P2=-1260;P3=-4304;P4=5712;P5=-6752;P6=3145;P7=-2718;D=345126712671212121267621712121212121212121212621712126;CP=1;R=245;")); // Lange pause zwischen den Wiederholungen einbauen
 
 		state = import_sigdata(&dstr);
 
@@ -1732,7 +1731,8 @@ testing(mu_xt300_b)  //Opus XT 300
 }
 
 
-testing(ms_fa20)
+
+testing(mu_fa20)
 {
 	if (checkTestDone(mc_somfy_d))
 	{
@@ -1812,7 +1812,7 @@ testing(ms_arctech)
 
 
 		assertFalse(mcdecoder.isManchester());
-		ooDecode.calcHisto();
+		ooDecode.calcHisto();-
 		ooDecode.getClock();
 		ooDecode.getSync();
 		ooDecode.printOut();
@@ -2105,6 +2105,7 @@ void setup() {
 	ooDecode.MSenabled = true;
 	ooDecode.MCenabled = true;
 	ooDecode.MUenabled = true;
+	ooDecode.MredEnabled = false;
 
 	Serial.println("---- Start unittest ----");
 	delay(400);
@@ -2114,14 +2115,15 @@ void setup() {
 	//Test::include("mc_long_2");
 
 	Test::exclude("*speed*"); //mc_long_2 mc_long_1
-	//Test::exclude("*"); //mc_long_2 mc_long_1
+	Test::exclude("*"); //mc_long_2 mc_long_1
+	Test::include("*_osv2");
+	Test::include("mc_basic_1");
 
-
-	Test::include("func_compressPattern");
-	Test::include("*mu_mc_2*");
-	Test::include("*mc_osv1*"); 
-	Test::include("*mc_somfy_b*");
-	Test::include("*serialIn*");
+	//Test::include("func_compressPattern");
+	//Test::include("*mu_mc_2*");
+	//Test::include("*mc_osv1*"); 
+	//Test::include("*mc_somfy_b*");
+	//Test::include("*serialIn*");
 
 //	Test::include("*speed*"); //mc_long_2 mc_long_1
 
@@ -2130,6 +2132,8 @@ void setup() {
 	Test::include("*mc_long_1*");
 	Test::include("*mc_hideki*");
 	*/
+//	Test::include("*ms*");
+
 }
 
 
